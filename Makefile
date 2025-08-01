@@ -2,14 +2,12 @@ dev:
 	docker-compose up dev
 
 prod:
-	docker-compose up builder
 	docker-compose up prod
 
 build-dev:
 	docker-compose build dev
 
 build-prod:
-	docker-compose build builder
 	docker-compose build prod
 
 stop:
