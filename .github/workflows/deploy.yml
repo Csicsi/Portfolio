@@ -15,11 +15,22 @@ jobs:
 
       - name: Set up SSH key
         run: |
+          echo "🔧 Creating SSH config directory..."
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "✅ ~/.ssh directory created."
+      
+          echo "🔐 Writing private key..."
           printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          echo "✅ Private key saved and secured."
+      
+          echo "🔑 Scanning and saving known host key..."
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-
+          echo "✅ known_hosts entry added."
+      
+          echo "📂 SSH directory contents:"
+          ls -la ~/.ssh
 
       - name: Deploy to server
         run: |
