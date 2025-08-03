@@ -13,30 +13,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up SSH key
+      - name: Test SSH connection
         run: |
-          echo "🔧 Creating SSH config directory..."
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "✅ ~/.ssh directory created."
-      
-          echo "🔐 Writing private key..."
-          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "✅ Private key saved and secured."
-      
-          echo "🔑 Scanning and saving known host key..."
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-          echo "✅ known_hosts entry added."
-      
-          echo "📂 SSH directory contents:"
-          ls -la ~/.ssh
-
-      - name: Deploy to server
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
-            docker pull dcsicsak/portfolio:latest
-            docker stop portfolio || true
-            docker rm portfolio || true
-            docker run -d --name portfolio -p 80:80 dcsicsak/portfolio:latest
-          EOF
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ✅ SSH from GitHub succeeded"
