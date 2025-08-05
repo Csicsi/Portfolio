@@ -1,0 +1,14 @@
+services:
+  jenkins:
+    image: jenkins/jenkins:latest
+    container_name: jenkins
+    privileged: true
+    user: "0"
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /home/jenkins_home:/var/jenkins_home
+    restart: unless-stopped
