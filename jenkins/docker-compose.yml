@@ -11,4 +11,5 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
       - /home/jenkins_home:/var/jenkins_home
+      - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins
     restart: unless-stopped
