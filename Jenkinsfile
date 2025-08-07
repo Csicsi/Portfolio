@@ -39,7 +39,7 @@ pipeline {
         script {
           sh """
             docker rm -f vite-site || true
-            docker run -d --name vite-site -p 80:80 ${IMAGE_NAME}:latest
+            docker run -d --name vite-site -p 8888:80 ${IMAGE_NAME}:latest
           """
         }
       }
