@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = 'dcsicsak/portfolio'
+    COMPOSE_FILE = 'docker-compose.yml'
   }
 
   stages {
@@ -12,35 +12,11 @@ pipeline {
       }
     }
 
-    stage('Build Docker Image') {
+    stage('Build and Deploy with Compose') {
       steps {
         script {
-          sh "docker build -t ${IMAGE_NAME}:latest -f Dockerfile.prod ."
-        }
-      }
-    }
-
-    stage('Push to Docker Hub') {
-      when {
-        expression { return env.DOCKERHUB_PUSH == 'true' }
-      }
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          script {
-            sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-            sh "docker push ${IMAGE_NAME}:latest"
-          }
-        }
-      }
-    }
-
-    stage('Deploy Container') {
-      steps {
-        script {
-          sh """
-            docker rm -f vite-site || true
-            docker run -d --name vite-site -p 8888:80 ${IMAGE_NAME}:latest
-          """
+          sh "docker-compose -f ${COMPOSE_FILE} down"
+          sh "docker-compose -f ${COMPOSE_FILE} up -d --build"
         }
       }
     }
