@@ -15,8 +15,8 @@ pipeline {
     stage('Build and Deploy with Compose') {
       steps {
         script {
-          sh "docker-compose -f ${COMPOSE_FILE} down"
-          sh "docker-compose -f ${COMPOSE_FILE} up -d --build"
+          sh "docker compose -f ${COMPOSE_FILE} down"
+          sh "docker compose -f ${COMPOSE_FILE} up -d --build"
         }
       }
     }
