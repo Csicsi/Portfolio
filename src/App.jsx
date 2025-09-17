@@ -1,8 +1,7 @@
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 function SpinningBox() {
-  // simple animation using useFrame is optional; keep static for now
   return (
     <mesh>
       <boxGeometry args={[1, 1, 1]} />
@@ -17,7 +16,7 @@ export default function App() {
       <Canvas camera={{ position: [2, 2, 2], fov: 60 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={0.8} />
-        <SpinningBox />
+        <SpinningBox /> {/* */}
         <OrbitControls enableDamping />
       </Canvas>
     </div>
