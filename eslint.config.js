@@ -1,10 +1,10 @@
 // eslint.config.js
-import js from '@eslint/js'
-import globals from 'globals'
-import react from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import importPlugin from 'eslint-plugin-import'
-import unused from 'eslint-plugin-unused-imports'
+import js from '@eslint/js';
+import globals from 'globals';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import importPlugin from 'eslint-plugin-import';
+import unused from 'eslint-plugin-unused-imports';
 
 export default [
   { ignores: ['dist', 'node_modules', 'coverage'] },
@@ -14,9 +14,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
+      parserOptions: { ecmaFeatures: { jsx: true } },
       globals: { ...globals.browser, ...globals.node },
     },
     plugins: {
@@ -26,8 +24,10 @@ export default [
       'unused-imports': unused,
     },
     rules: {
+      // general
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-unused-vars': 'off',
+      'no-unused-vars': 'off', // handled by unused-imports
+      // imports
       'import/order': [
         'warn',
         {
@@ -35,11 +35,15 @@ export default [
           groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
         },
       ],
-      'react/jsx-uses-react': 'off',
+      // react + jsx
+      'react/jsx-uses-vars': 'error', // ⬅️ mark JSX identifiers as used
+      'react/jsx-uses-react': 'off', // new JSX transform
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // hooks
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // unused imports/vars
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
@@ -48,4 +52,4 @@ export default [
     },
     settings: { react: { version: 'detect' } },
   },
-]
+];
