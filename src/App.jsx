@@ -7,7 +7,7 @@ function SpinningBox() {
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial />
     </mesh>
-  )
+  );
 }
 
 export default function App() {
@@ -20,5 +20,5 @@ export default function App() {
         <OrbitControls enableDamping />
       </Canvas>
     </div>
-  )
+  );
 }
