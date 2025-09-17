@@ -1,88 +1,136 @@
-import { Suspense, useRef, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useRef, useMemo, useEffect, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF, Bounds, Sky } from '@react-three/drei';
 import { EffectComposer, GodRays } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
+function useCameraAnimator() {
+  const { camera, size } = useThree();
+  const controlsRef = useRef(null);
+
+  const [anim, setAnim] = useState(null);
+  useFrame((_, delta) => {
+    if (!anim) return;
+    const { fromPos, toPos, fromTarget, toTarget } = anim;
+    const speed = 2.2;
+    const t = Math.min(anim.t + delta / speed, 1);
+    const pos = new THREE.Vector3().lerpVectors(fromPos, toPos, t);
+    const tgt = new THREE.Vector3().lerpVectors(fromTarget, toTarget, t);
+    camera.position.copy(pos);
+    if (controlsRef.current) {
+      controlsRef.current.target.copy(tgt);
+      controlsRef.current.update();
+    }
+    if (t >= 1) setAnim(null);
+    else setAnim({ ...anim, t });
+  });
+
+  const startAnim = (toPos, toTarget) => {
+    setAnim({
+      fromPos: camera.position.clone(),
+      toPos: toPos.clone ? toPos.clone() : new THREE.Vector3(...toPos),
+      fromTarget: controlsRef.current ? controlsRef.current.target.clone() : new THREE.Vector3(),
+      toTarget: toTarget.clone ? toTarget.clone() : new THREE.Vector3(...toTarget),
+      t: 0,
+    });
+  };
+
+  const frameBox = (box, fovDeg = camera.fov) => {
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxSize = Math.max(size.x, size.y, size.z);
+    const fitHeightDistance = maxSize / (2 * Math.tan(THREE.MathUtils.degToRad(fovDeg * 0.5)));
+    const fitWidthDistance = fitHeightDistance / (size.x / size.y || 1);
+    const distance = 1.25 * Math.max(fitHeightDistance, fitWidthDistance); // padding
+
+    const dir = new THREE.Vector3()
+      .subVectors(camera.position, controlsRef.current?.target ?? new THREE.Vector3())
+      .normalize();
+
+    const newPos = new THREE.Vector3().addVectors(center, dir.multiplyScalar(distance));
+    startAnim(newPos, center);
+  };
+
+  const resetView = (
+    position = new THREE.Vector3(2.6, 1.6, 3),
+    target = new THREE.Vector3(0, 1, 0)
+  ) => {
+    startAnim(position, target);
+  };
+
+  return { controlsRef, frameBox, resetView };
+}
+
 function RoomModelInteractive(props) {
   const { scene } = useGLTF('/models/room.glb');
 
-  // Group names you want clickable
-  const clickableNames = useMemo(
-    () =>
-      new Set(['arduino', 'desk', 'gameboy', 'lamp', 'maker', 'PC', 'printer', 'server', 'shelf']),
+  const groups = useMemo(
+    () => ({
+      workstation: ['desk', 'gameboy', 'lamp', 'PC'],
+      makerbay: ['maker', 'arduino', 'printer'],
+      server: ['server'],
+      shelf: ['shelf'],
+    }),
     []
   );
 
-  const findNamedAncestor = (o) => {
-    let p = o;
-    while (p) {
-      if (clickableNames.has(p.name)) return p;
-      p = p.parent;
-    }
-    return null;
-  };
+  const rootToGroup = useMemo(() => {
+    const map = new Map();
+    Object.entries(groups).forEach(([g, roots]) => roots.forEach((r) => map.set(r, g)));
+    return map;
+  }, [groups]);
 
-  const getHighlightMeshes = (node) => {
-    const meshes = [];
-    if (!node) return meshes;
-    node.traverse?.((o) => {
-      if (o.isMesh) meshes.push(o);
-    });
-    if (meshes.length === 0 && node.isMesh) meshes.push(node);
-    return meshes;
-  };
+  const groupObjects = useMemo(() => {
+    const out = {};
+    Object.keys(groups).forEach((g) => (out[g] = { roots: [], meshes: [] }));
+    return out;
+  }, [groups]);
 
-  // 🔧 One-time fix: detach shared materials for meshes under clickable groups
   useEffect(() => {
-    const hasClickableAncestor = (o) => {
-      let p = o;
-      while (p) {
-        if (clickableNames.has(p.name)) return true;
-        p = p.parent;
-      }
-      return false;
-    };
-
     scene.traverse((o) => {
-      if (!o.isMesh) return;
-      if (!hasClickableAncestor(o)) return;
-
-      // Clone material once to avoid shared-state highlighting
-      if (!o.userData._matCloned && o.material) {
-        o.material = o.material.clone();
-        o.userData._matCloned = true;
-      }
-
-      // Prepare original emissive snapshot for restore
-      const mat = o.material;
-      if (mat && !o.userData._orig) {
-        o.userData._orig = {
-          hasEmissive: !!mat.emissive,
-          emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
-          emissiveIntensity: mat.emissiveIntensity ?? 0,
-        };
+      if (!o.name) return;
+      const groupName = rootToGroup.get(o.name);
+      if (groupName) {
+        groupObjects[groupName].roots.push(o);
       }
     });
-  }, [scene, clickableNames]);
+    Object.values(groupObjects).forEach(({ roots, meshes }) => {
+      roots.forEach((root) => {
+        root.traverse((o) => {
+          if (o.isMesh) {
+            if (!o.userData._matCloned && o.material) {
+              o.material = o.material.clone();
+              o.userData._matCloned = true;
+            }
+            if (!o.userData._orig) {
+              const mat = o.material;
+              o.userData._orig = {
+                hasEmissive: !!mat?.emissive,
+                emissive: mat?.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
+                emissiveIntensity: mat?.emissiveIntensity ?? 0,
+              };
+            }
+            meshes.push(o);
+          }
+        });
+      });
+    });
+  }, [scene, rootToGroup, groupObjects]);
 
-  const setHoverForNode = (node, hovering) => {
-    const meshes = getHighlightMeshes(node);
-    if (meshes.length === 0) return;
+  const [mode, setMode] = useState('out');
+  const [activeGroup, setActiveGroup] = useState(null);
 
-    document.body.style.cursor = hovering ? 'pointer' : 'auto';
-
+  const highlightMeshes = (meshes, on) => {
     for (const m of meshes) {
       const mat = m.material;
       if (!mat) continue;
-
-      // Ensure emissive exists when highlighting
-      if (hovering) {
+      if (on) {
         if (!mat.emissive) mat.emissive = new THREE.Color(0, 0, 0);
         mat.emissive.setRGB(0.15, 0.15, 0.15);
         mat.emissiveIntensity = 0.8;
       } else if (m.userData._orig) {
-        // Restore per-mesh original values
         if (!mat.emissive && m.userData._orig.hasEmissive) {
           mat.emissive = m.userData._orig.emissive.clone();
         } else if (mat.emissive) {
@@ -93,53 +141,84 @@ function RoomModelInteractive(props) {
     }
   };
 
-  const handleClick = (e) => {
-    e.stopPropagation();
-    const target = findNamedAncestor(e.object);
-    if (!target) return;
+  const clearAllHighlights = () => {
+    Object.values(groupObjects).forEach(({ meshes }) => highlightMeshes(meshes, false));
+    document.body.style.cursor = 'auto';
+  };
 
-    switch (target.name) {
-      case 'server':
-        console.log('Server clicked! Maybe open your homelab page');
-        break;
-      case 'arduino':
-        console.log('Arduino clicked! Could open a project detail');
-        break;
-      case 'desk':
-        console.log('Desk clicked!');
-        break;
-      case 'gameboy':
-        console.log('Gameboy clicked! Could open retro gaming page');
-        break;
-      case 'lamp':
-        console.log('Lamp clicked! Maybe toggle light on/off');
-        break;
-      case 'maker':
-        console.log('Maker clicked! Could open maker projects page');
-        break;
-      case 'PC':
-        console.log('PC clicked! Could open portfolio or about me page');
-        break;
-      case 'printer':
-        console.log('Printer clicked! Could open 3D printing projects page');
-        break;
-      case 'shelf':
-        console.log('Shelf clicked! Could open bookshelf or reading list page');
-        break;
-      default:
+  const setHoverGroup = (groupName, on) => {
+    const entry = groupObjects[groupName];
+    if (!entry) return;
+    highlightMeshes(entry.meshes, on);
+    document.body.style.cursor = on ? 'pointer' : 'auto';
+  };
+
+  const setHoverObject = (mesh, on) => {
+    highlightMeshes([mesh], on);
+    document.body.style.cursor = on ? 'pointer' : 'auto';
+  };
+
+  const { controlsRef, frameBox, resetView } = useCameraAnimator();
+  const computeGroupBox = (groupName) => {
+    const entry = groupObjects[groupName];
+    const box = new THREE.Box3();
+    entry?.roots.forEach((root) => box.expandByObject(root));
+    return box;
+  };
+
+  const findRootName = (obj) => {
+    let p = obj;
+    while (p) {
+      if (rootToGroup.has(p.name)) return p.name;
+      p = p.parent;
     }
+    return null;
   };
 
   const handleOver = (e) => {
     e.stopPropagation();
-    const target = findNamedAncestor(e.object);
-    if (target) setHoverForNode(target, true);
+    const rootName = findRootName(e.object);
+    if (!rootName) return;
+
+    if (mode === 'out') {
+      setHoverGroup(rootToGroup.get(rootName), true);
+    } else {
+      setHoverObject(e.object, true);
+    }
   };
 
   const handleOut = (e) => {
     e.stopPropagation();
-    const target = findNamedAncestor(e.object);
-    if (target) setHoverForNode(target, false);
+    if (mode === 'out') {
+      Object.keys(groups).forEach((g) => setHoverGroup(g, false));
+    } else {
+      setHoverObject(e.object, false);
+    }
+  };
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    const rootName = findRootName(e.object);
+    if (!rootName) return;
+    const groupName = rootToGroup.get(rootName);
+    if (!groupName) return;
+
+    if (mode === 'out') {
+      const box = computeGroupBox(groupName);
+      frameBox(box);
+      setMode('in');
+      setActiveGroup(groupName);
+      clearAllHighlights();
+    } else if (mode === 'in') {
+      if (groupName !== activeGroup) {
+        const box = computeGroupBox(groupName);
+        frameBox(box);
+        setActiveGroup(groupName);
+        clearAllHighlights();
+      } else {
+        console.log(`Clicked object: ${e.object.name} (group: ${groupName})`);
+      }
+    }
   };
 
   return (
@@ -150,7 +229,11 @@ function RoomModelInteractive(props) {
       onPointerOver={handleOver}
       onPointerOut={handleOut}
       onPointerMissed={() => {
-        document.body.style.cursor = 'auto';
+        // Reset to zoomed out
+        clearAllHighlights();
+        setMode('out');
+        setActiveGroup(null);
+        resetView();
       }}
     />
   );
@@ -161,6 +244,7 @@ useGLTF.preload('/models/room.glb');
 export default function App() {
   const sunRef = useRef();
   const sunPos = [-12, 10, 3];
+  const { controlsRef } = (() => ({}))();
 
   return (
     <div style={{ width: '100vw', height: '100dvh' }}>
@@ -201,7 +285,12 @@ export default function App() {
           <meshBasicMaterial color="#ffffff" />
         </mesh>
 
-        <OrbitControls makeDefault target={[0, 1, 0]} enableDamping />
+        <OrbitControls
+          ref={(ref) => (window.__controlsRef = ref)}
+          makeDefault
+          target={[0, 1, 0]}
+          enableDamping
+        />
 
         <Suspense fallback={<Html center>Loading room…</Html>}>
           <Bounds fit clip observe margin={1.2}>
