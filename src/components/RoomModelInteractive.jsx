@@ -107,9 +107,13 @@ export default function RoomModelInteractive({ onGoToGroup }) {
         mat.emissiveIntensity = 0.8;
       } else if (m.userData._orig) {
         // Restore exact original emissive settings
-        if (!mat.emissive && m.userData._orig.hasEmissive) {
-          mat.emissive = m.userData._orig.emissive.clone();
-        } else if (mat.emissive) {
+        if (!mat.emissive) {
+          // Initialize to a clone of the original, or a default color if not available
+          mat.emissive = m.userData._orig.hasEmissive && m.userData._orig.emissive
+            ? m.userData._orig.emissive.clone()
+            : new THREE.Color(0, 0, 0);
+        }
+        if (m.userData._orig.hasEmissive && m.userData._orig.emissive) {
           mat.emissive.copy(m.userData._orig.emissive);
         }
         mat.emissiveIntensity = m.userData._orig.emissiveIntensity;
