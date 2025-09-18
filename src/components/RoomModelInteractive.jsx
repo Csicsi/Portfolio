@@ -226,7 +226,7 @@ export default function RoomModelInteractive({ onGoToGroup }) {
               backdropFilter: 'blur(4px)',
               boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
             }}
-          ></div>
+          >×</div>
         </Html>
       )}
     </>
