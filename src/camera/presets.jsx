@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 // -------------------- CAMERA PRESETS --------------------
 export const CAMERA_PRESETS = {
   overview: {
@@ -43,4 +41,3 @@ export const CAMERA_PRESETS = {
     polarSpreadDeg: 10,
   },
 };
-
