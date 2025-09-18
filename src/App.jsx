@@ -13,7 +13,7 @@
  *  - RoomModelInteractive handles all picking/hover and calls onGoToGroup.
  */
 
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Html, Bounds, Sky } from '@react-three/drei';
 import { EffectComposer, GodRays } from '@react-three/postprocessing';
@@ -25,6 +25,17 @@ import { CAMERA_PRESETS } from './camera/presets';
 export default function App() {
   // Refs shared across components
   const sunRef = useRef(); // Light visualizer for GodRays
+  const [sunReady, setSunReady] = useState(false);
+
+  // Callback für das Mesh-Ref, um sunReady zu setzen
+  const handleSunRef = useCallback(
+    (node) => {
+      sunRef.current = node;
+      if (node && !sunReady) setSunReady(true);
+      if (!node && sunReady) setSunReady(false);
+    },
+    [sunReady]
+  );
   const controlsRef = useRef(null); // OrbitControls instance
   const cameraCtrlRef = useRef(null); // CameraController API
 
@@ -76,7 +87,7 @@ export default function App() {
         />
 
         {/* Bright sphere to feed the GodRays pass (not culled) */}
-        <mesh ref={sunRef} position={sunPos} frustumCulled={false}>
+        <mesh ref={handleSunRef} position={sunPos} frustumCulled={false}>
           <sphereGeometry args={[1.2, 32, 32]} />
           <meshBasicMaterial color="#ffffff" />
         </mesh>
@@ -93,7 +104,7 @@ export default function App() {
 
         {/* Post-processing: God Rays from the sun mesh */}
         <EffectComposer>
-          {sunRef.current && (
+          {sunReady && sunRef.current && (
             <GodRays
               sun={sunRef.current}
               samples={60}
