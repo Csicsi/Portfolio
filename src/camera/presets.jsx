@@ -44,4 +44,3 @@ export const CAMERA_PRESETS = {
   },
 };
 
-const deg = (d) => THREE.MathUtils.degToRad(d);
