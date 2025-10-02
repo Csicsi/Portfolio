@@ -27,7 +27,7 @@ export default function App() {
   const sunRef = useRef(null); // Light visualizer for GodRays
   const [sunReady, setSunReady] = useState(false);
 
-  // Callback für das Mesh-Ref, um sunReady zu setzen
+  // Callback for the Mesh ref to set sunReady
   const handleSunRef = useCallback(
     (node: null) => {
       sunRef.current = node;
