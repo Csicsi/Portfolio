@@ -1,5 +1,6 @@
 class ResizeObserverPolyfill {
-  constructor(callback) {
+  private _callback: any;
+  constructor(callback: any) {
     this._callback = callback;
   }
   observe() {}

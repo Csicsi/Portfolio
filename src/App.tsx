@@ -24,12 +24,12 @@ import { CAMERA_PRESETS } from './camera/presets';
 
 export default function App() {
   // Refs shared across components
-  const sunRef = useRef(); // Light visualizer for GodRays
+  const sunRef = useRef(null); // Light visualizer for GodRays
   const [sunReady, setSunReady] = useState(false);
 
   // Callback für das Mesh-Ref, um sunReady zu setzen
   const handleSunRef = useCallback(
-    (node) => {
+    (node: null) => {
       sunRef.current = node;
       if (node && !sunReady) setSunReady(true);
       if (!node && sunReady) setSunReady(false);
@@ -37,13 +37,13 @@ export default function App() {
     [sunReady]
   );
   const controlsRef = useRef(null); // OrbitControls instance
-  const cameraCtrlRef = useRef(null); // CameraController API
+  const cameraCtrlRef = useRef<CameraControllerHandle>(null); // CameraController API
 
   // Static-ish sun position for Sky + GodRays light mesh
-  const sunPos = [-12, 10, 3];
+  const sunPos: [number, number, number] = [-12, 10, 3];
 
   // Simple API for children to switch views
-  const goTo = (name) => cameraCtrlRef.current?.applyViewPreset(name);
+  const goTo = (name: any) => cameraCtrlRef.current?.applyViewPreset(name);
 
   return (
     <div style={{ width: '100vw', height: '100dvh' }}>
@@ -51,7 +51,7 @@ export default function App() {
         shadows
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-        camera={{ position: CAMERA_PRESETS.overview.position, fov: 50, near: 0.1, far: 100 }}
+        camera={{ position: CAMERA_PRESETS.overview.position as [number, number, number], fov: 50, near: 0.1, far: 100 }}
         style={{ width: '100%', height: '100%' }}
         // Ensure first render starts from the overview view without an animation "snap"
         onCreated={() => cameraCtrlRef.current?.applyViewPreset('overview', { animate: false })}
@@ -104,7 +104,7 @@ export default function App() {
 
         {/* Post-processing: God Rays from the sun mesh */}
         <EffectComposer>
-          {sunReady && sunRef.current && (
+          {sunReady && sunRef.current ? (
             <GodRays
               sun={sunRef.current}
               samples={60}
@@ -115,7 +115,7 @@ export default function App() {
               clampMax={1.0}
               blur
             />
-          )}
+          ) : <></>}
         </EffectComposer>
       </Canvas>
     </div>
