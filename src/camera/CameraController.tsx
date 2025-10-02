@@ -17,15 +17,35 @@ import * as THREE from 'three';
 
 import { CAMERA_PRESETS } from './presets';
 
-// Small helper: degrees → radians
-const deg = (d) => THREE.MathUtils.degToRad(d);
+// Define the allowed preset keys based on CAMERA_PRESETS
+type CameraPresetName = keyof typeof CAMERA_PRESETS;
 
-export const CameraController = forwardRef(function CameraController({ controlsRef }, ref) {
+// Small helper: degrees → radians
+const deg = (d: number) => THREE.MathUtils.degToRad(d);
+
+type CameraControllerProps = {
+  controlsRef: React.RefObject<any>;
+};
+
+export const CameraController = forwardRef<
+  { applyViewPreset: (name: CameraPresetName, options?: { animate?: boolean }) => void },
+  CameraControllerProps
+>(function CameraController({ controlsRef }, ref) {
   // R3F hook that gives us access to the shared WebGL camera.
   const { camera } = useThree();
 
+  // Animation state type
+  type AnimState = {
+    fromPos: THREE.Vector3;
+    toPos: THREE.Vector3;
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    duration: number;
+    t: number;
+  } | null;
+
   // We store the current animation state here (null = no animation).
-  const animRef = useRef(null);
+  const animRef = useRef<AnimState>(null);
 
   /**
    * Per-frame loop (R3F). Lerp camera position/target toward the target values
@@ -60,14 +80,18 @@ export const CameraController = forwardRef(function CameraController({ controlsR
    * @param {Array|THREE.Vector3} toTarget - [x,y,z] or Vector3
    * @param {number} durationSeconds
    */
-  const startAnim = (toPos, toTarget, durationSeconds = 0.9) => {
+  const startAnim = (
+    toPos: THREE.Vector3 | [number, number, number],
+    toTarget: THREE.Vector3 | [number, number, number],
+    durationSeconds = 0.9
+  ) => {
     const fromPos = camera.position.clone();
     const fromTarget = controlsRef?.current
       ? controlsRef.current.target.clone()
       : new THREE.Vector3();
 
-    const toP = toPos.clone ? toPos.clone() : new THREE.Vector3(...toPos);
-    const toT = toTarget.clone ? toTarget.clone() : new THREE.Vector3(...toTarget);
+    const toP = toPos instanceof THREE.Vector3 ? toPos.clone() : new THREE.Vector3(...toPos);
+    const toT = toTarget instanceof THREE.Vector3 ? toTarget.clone() : new THREE.Vector3(...toTarget);
 
     animRef.current = {
       fromPos,
@@ -84,7 +108,7 @@ export const CameraController = forwardRef(function CameraController({ controlsR
    *  - Update OrbitControls limits to base ± spread.
    *  - Animate (or jump) to the preset position/target.
    */
-  const applyViewPreset = (name, { animate = true } = {}) => {
+  const applyViewPreset = (name: CameraPresetName, { animate = true } = {}) => {
     const p = CAMERA_PRESETS[name];
     if (!p) return;
 
