@@ -45,7 +45,13 @@ import { useEffect, useMemo, useState } from 'react';
  *
  * Think of callbacks like function pointers passed from parent to child
  */
-export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }) {
+
+interface RoomModelInteractiveProps {
+  onGoToGroup: (groupName: string) => void;
+  onGoToOverview: () => void;
+}
+
+export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: RoomModelInteractiveProps) {
   // ============================================================================
   // 3D MODEL LOADING
   // ============================================================================
