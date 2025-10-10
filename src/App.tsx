@@ -30,7 +30,7 @@ import { Suspense, useRef, useState, useCallback } from 'react';
 
 // THREE.JS IMPORTS - 3D rendering through React Three Fiber (R3F)
 import { Canvas } from '@react-three/fiber'; // Main 3D canvas (like OpenGL context)
-import { OrbitControls, Html, Bounds, Sky } from '@react-three/drei'; // Common 3D utilities
+import { OrbitControls, Html, Sky } from '@react-three/drei'; // Common 3D utilities
 import { EffectComposer, GodRays } from '@react-three/postprocessing'; // Visual effects (like post-processing shaders)
 
 // LOCAL COMPONENT IMPORTS - Our custom components
