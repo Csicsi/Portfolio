@@ -335,6 +335,7 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
 
   return (
     <>
+      {/* Model positioned at its natural origin: back wall center, floor level */}
       <primitive
         object={scene}
         onClick={handleClick}

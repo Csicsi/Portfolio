@@ -104,7 +104,12 @@ Scene (root)
 - **X**: left (-) to right (+)
 - **Y**: down (-) to up (+)
 - **Z**: into screen (-) to out of screen (+)
-- Origin [0,0,0] is center of room (after Bounds centering)
+
+**Coordinate System:**
+
+- **Origin [0,0,0]**: Back wall center, floor level (model's natural origin)
+- **Camera targets**: Usually point toward the front of the room (positive Z values)
+- **Benefits**: Intuitive coordinates, no camera pivot issues when orbiting
 
 #### Animation = Interpolation
 
@@ -198,7 +203,8 @@ In `src/App.tsx`, adjust GodRays:
 
 1. **Add to GLB file** using Blender or similar 3D software
 2. **Name root objects** descriptively in your 3D software
-3. **Update group mappings** in RoomModelInteractive.tsx:
+3. **Note**: Model origin is at back wall center, floor level - the `<Bounds>` component handles centering
+4. **Update group mappings** in RoomModelInteractive.tsx:
 
 ```tsx
 const groups = useMemo(
@@ -255,6 +261,7 @@ npm run lint
 - **Objects not visible**: Check if they're inside camera frustum (near/far planes)
 - **Lighting too dark**: Increase ambient light intensity
 - **Shadows not working**: Ensure objects have `castShadow` and `receiveShadow`
+- **Coordinate confusion**: Remember model origin ≠ scene origin due to `<Bounds>` centering
 
 ### React Issues
 

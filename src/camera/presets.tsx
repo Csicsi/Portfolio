@@ -1,5 +1,10 @@
 /**
- * ================================================================================
+ * == * COORDINATE SYSTEM:
+ * - Origin [0, 0, 0]: Back wall center, floor level (model's natural origin)
+ * - X axis: left (-) to right (+)
+ * - Y axis: down (-) to up (+)
+ * - Z axis: back wall (-) to front of room (+)
+ * - Camera targets: Usually positive Z values (toward front of room)========================================================================
  * CAMERA PRESETS - Predefined camera positions and targets
  * ================================================================================
  *
@@ -8,7 +13,8 @@
  * Each preset defines where the camera should be positioned and what it should look at.
  *
  * COORDINATE SYSTEM:
- * - Origin [0, 0, 0] is the center of the room (after Bounds centering)
+ * - Model Origin: [0, 0, 0] is at the back wall center, floor level (in raw model)
+ * - Scene Origin: After Bounds centering, [0, 0, 0] becomes the visual center of room
  * - X axis: left (-) to right (+)
  * - Y axis: down (-) to up (+)
  * - Z axis: into screen (-) to out of screen (+)
@@ -31,33 +37,34 @@
 
 export const CAMERA_PRESETS = {
   // Main overview - shows the entire room from a good vantage point
+  // Back wall origin: camera positioned forward and up from back wall
   overview: {
-    position: [2.6, 1.6, 3.0], // Camera positioned right, up, and forward of room center
-    target: [0, 1, 0], // Looking at center of room, slightly above floor
+    position: [0, 2, 5], // Camera positioned at back wall center, up, and forward
+    target: [0, 1, 2], // Looking toward middle of room from back wall
   },
 
   // Workstation area - focuses on desk/computer setup
   workstation: {
-    position: [2.6, 1.6, 3.2], // Similar to overview but slightly further forward
-    target: [2.6, 1.55, 2.55], // Looking at workstation area (right side of room)
+    position: [2, 2, 4], // Camera on right side, forward from back wall
+    target: [2, 1, 2], // Looking at workstation area
   },
 
   // Maker area - focuses on 3D printer and electronics
   makerbay: {
-    position: [-1.4, 1.5, 1.6], // Camera on left side of room
-    target: [-0.6, 1.0, 0.1], // Looking at maker/electronics area
+    position: [-2, 2, 3], // Camera on left side, forward from back wall
+    target: [-1, 1, 1], // Looking at maker/electronics area
   },
 
   // Server rack - focuses on computer equipment
   server: {
-    position: [0.4, 1.6, -1.8], // Camera positioned behind the room
-    target: [0.2, 1.1, -0.4], // Looking at server/equipment area
+    position: [0, 2, 1], // Camera close to back wall, elevated
+    target: [0, 1, 0.5], // Looking at equipment near back wall
   },
 
   // Shelf area - focuses on storage and display items
   shelf: {
-    position: [-2.2, 1.5, -0.5], // Camera on far left side
-    target: [-0.9, 1.1, 0.0], // Looking at shelf area
+    position: [-2, 1.5, 2], // Camera on far left side
+    target: [-1.5, 1, 1], // Looking at shelf area
   },
 };
 

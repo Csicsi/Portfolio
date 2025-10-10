@@ -310,23 +310,14 @@ export default function App() {
         */}
         <Suspense fallback={<Html center>Loading room…</Html>}>
           {/* 
-            BOUNDS - Automatically centers and scales the 3D model
-            Like auto-framing in a 3D modeling program
-            - fit: scales model to fit in view
-            - clip: prevents model from going outside bounds  
-            - observe: updates when model changes
-            - margin: adds padding around the model
+            MAIN 3D MODEL COMPONENT - Manual positioning to keep natural origin
+            Model origin (back wall center, floor level) = Scene origin [0,0,0]
+            This prevents camera pivot issues and makes coordinates more intuitive
           */}
-          <Bounds fit clip observe margin={1.2}>
-            {/* 
-              MAIN 3D MODEL COMPONENT - Loads room.glb and handles user interaction
-              This is where all the clicking, hovering, and object selection happens
-            */}
-            <RoomModelInteractive
-              onGoToGroup={goTo} // Callback when user clicks an object group
-              onGoToOverview={goToOverview} // Callback to return to overview
-            />
-          </Bounds>
+          <RoomModelInteractive
+            onGoToGroup={goTo} // Callback when user clicks an object group
+            onGoToOverview={goToOverview} // Callback to return to overview
+          />
         </Suspense>
 
         {/* 
