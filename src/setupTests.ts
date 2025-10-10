@@ -1,14 +1,19 @@
-class ResizeObserverPolyfill {
-  private _callback: any;
-  constructor(callback: any) {
-    this._callback = callback;
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-if (typeof global.ResizeObserver === 'undefined') {
-  global.ResizeObserver = ResizeObserverPolyfill;
+// Polyfill for ResizeObserver in test environment
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    constructor(_callback: ResizeObserverCallback) {
+      // Polyfill implementation
+    }
+    observe() {
+      // Polyfill implementation
+    }
+    unobserve() {
+      // Polyfill implementation
+    }
+    disconnect() {
+      // Polyfill implementation
+    }
+  };
 }
 
 import '@testing-library/jest-dom';

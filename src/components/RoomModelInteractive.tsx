@@ -51,7 +51,10 @@ interface RoomModelInteractiveProps {
   onGoToOverview: () => void;
 }
 
-export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: RoomModelInteractiveProps) {
+export default function RoomModelInteractive({
+  onGoToGroup,
+  onGoToOverview,
+}: RoomModelInteractiveProps) {
   // ============================================================================
   // 3D MODEL LOADING
   // ============================================================================
@@ -144,14 +147,14 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
    * - We do it once on load, then use cached results for fast hover/click
    * - Separates "roots" (logical objects) from "meshes" (what user sees/clicks)
    */
-  const groupObjects = useMemo(() => {
-    const out = {};
+  type GroupObjectsType = Record<string, { roots: THREE.Object3D[]; meshes: THREE.Mesh[] }>;
+
+  const groupObjects = useMemo((): GroupObjectsType => {
+    const out: GroupObjectsType = {};
     // Initialize empty arrays for each group
     Object.keys(groups).forEach((g) => (out[g] = { roots: [], meshes: [] }));
     return out;
-  }, [groups]);
-
-  // ============================================================================
+  }, [groups]); // ============================================================================
   // MODEL PROCESSING - Parse 3D hierarchy and organize objects
   // ============================================================================
 
@@ -179,7 +182,9 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
 
       // Check if this object name matches any of our defined groups
       const groupName = rootToGroup.get(o.name);
-      if (groupName) groupObjects[groupName].roots.push(o);
+      if (groupName && groupObjects[groupName]) {
+        groupObjects[groupName].roots.push(o);
+      }
     });
 
     // PHASE 2: For each root object, find all child meshes and prepare them for interaction
@@ -187,7 +192,9 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
       roots.forEach((root) => {
         // Traverse each root's children to find all meshes (visible geometry)
         root.traverse((o) => {
-          if (o.isMesh) {
+          // Type guard to check if object is a mesh
+          if ((o as THREE.Mesh).isMesh) {
+            const mesh = o as THREE.Mesh;
             /**
              * MATERIAL CLONING FOR HOVER EFFECTS
              *
@@ -199,9 +206,11 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
              * Clone the material for each mesh so we can modify it independently
              * This is like making a copy of a struct before modifying it
              */
-            if (!o.userData._matCloned && o.material) {
-              o.material = o.material.clone(); // Create independent copy
-              o.userData._matCloned = true; // Mark as already cloned
+            if (!mesh.userData._matCloned && mesh.material) {
+              mesh.material = Array.isArray(mesh.material)
+                ? mesh.material.map((m) => m.clone())
+                : mesh.material.clone(); // Create independent copy
+              mesh.userData._matCloned = true; // Mark as already cloned
             }
 
             /**
@@ -211,15 +220,17 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
              * Store original material values so we can restore them when hover ends
              * Like storing register values before modifying them in assembly
              */
-            if (!o.userData._orig) {
-              const mat = o.material;
-              o.userData._orig = {
-                hasEmissive: !!mat?.emissive, // Does material have emissive property?
-                emissive: mat?.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
-                emissiveIntensity: mat?.emissiveIntensity ?? 0,
+            if (!mesh.userData._orig) {
+              const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+              mesh.userData._orig = {
+                hasEmissive: !!(mat as any)?.emissive, // Does material have emissive property?
+                emissive: (mat as any)?.emissive
+                  ? (mat as any).emissive.clone()
+                  : new THREE.Color(0, 0, 0),
+                emissiveIntensity: (mat as any)?.emissiveIntensity ?? 0,
               };
             }
-            meshes.push(o);
+            meshes.push(mesh);
           }
         });
       });
@@ -227,13 +238,13 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
   }, [scene, rootToGroup, groupObjects]);
 
   // Interaction mode: 'out' (group hover) vs 'in' (object hover)
-  const [mode, setMode] = useState('out');
-  const [activeGroup, setActiveGroup] = useState(null);
+  const [mode, setMode] = useState<'out' | 'in'>('out');
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   /** Toggle emissive highlight for a list of meshes */
-  const highlightMeshes = (meshes, on) => {
+  const highlightMeshes = (meshes: THREE.Mesh[], on: boolean) => {
     for (const m of meshes) {
-      const mat = m.material;
+      const mat = m.material as any;
       if (!mat) continue;
 
       if (on) {
@@ -265,21 +276,21 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
   };
 
   /** Hover helpers */
-  const setHoverGroup = (groupName, on) => {
+  const setHoverGroup = (groupName: string, on: boolean) => {
     const entry = groupObjects[groupName];
     if (!entry) return;
     highlightMeshes(entry.meshes, on);
     document.body.style.cursor = on ? 'pointer' : 'auto';
   };
 
-  const setHoverObject = (mesh, on) => {
+  const setHoverObject = (mesh: THREE.Mesh, on: boolean) => {
     highlightMeshes([mesh], on);
     document.body.style.cursor = on ? 'pointer' : 'auto';
   };
 
   /** Walk up the parent chain to find the root name that belongs to a group */
-  const findRootName = (obj) => {
-    let p = obj;
+  const findRootName = (obj: THREE.Object3D): string | null => {
+    let p: THREE.Object3D | null = obj;
     while (p) {
       if (rootToGroup.has(p.name)) return p.name;
       p = p.parent;
@@ -288,18 +299,18 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
   };
 
   // Pointer events
-  const handleOver = (e) => {
+  const handleOver = (e: any) => {
     e.stopPropagation();
     const rootName = findRootName(e.object);
     if (!rootName) return;
-    if (mode === 'out') setHoverGroup(rootToGroup.get(rootName), true);
-    else setHoverObject(e.object, true);
+    if (mode === 'out') setHoverGroup(rootToGroup.get(rootName) || '', true);
+    else setHoverObject(e.object as THREE.Mesh, true);
   };
 
-  const handleOut = (e) => {
+  const handleOut = (e: any) => {
     e.stopPropagation();
     if (mode === 'out') Object.keys(groups).forEach((g) => setHoverGroup(g, false));
-    else setHoverObject(e.object, false);
+    else setHoverObject(e.object as THREE.Mesh, false);
   };
 
   /** Return to overview */
@@ -310,7 +321,7 @@ export default function RoomModelInteractive({ onGoToGroup, onGoToOverview }: Ro
     onGoToOverview();
   };
 
-  const handleClick = (e) => {
+  const handleClick = (e: any) => {
     e.stopPropagation();
     const rootName = findRootName(e.object);
     if (!rootName) return;
