@@ -40,8 +40,6 @@ import { EffectComposer, GodRays } from '@react-three/postprocessing'; // Visual
 import RoomModelInteractive from './components/RoomModelInteractive'; // Handles 3D model and user interaction
 import { CameraController } from './camera/CameraController'; // Manages camera animations and positioning
 import { CAMERA_PRESETS } from './camera/presets'; // Static camera position definitions
-import CameraReadout from './camera/CameraReadout'; // Debug overlay showing camera info
-import CameraControlOverlay, { CameraControlOverlayRef } from './camera/CameraControlOverlay'; // Interactive camera controls
 
 /**
  * Main App Component Function
@@ -85,8 +83,7 @@ export default function App() {
     ) => void;
   } | null>(null);
 
-  // Reference to CameraControlOverlay for managing the control UI
-  const cameraOverlayRef = useRef<CameraControlOverlayRef>(null);
+
 
   // Tracks UI state - are we zoomed into a specific object or viewing overview?
   const [isZoomedIn, setIsZoomedIn] = useState(false);
@@ -134,21 +131,7 @@ export default function App() {
   // Convenience function to return to main overview
   const goToOverview = () => goTo('overview');
 
-  /**
-   * Camera Control Overlay Handlers
-   * Handle manual camera position and target adjustments from UI overlay
-   */
-  const handleCameraPositionChange = useCallback((position: [number, number, number]) => {
-    cameraCtrlRef.current?.setPosition(position);
-  }, []);
 
-  const handleCameraTargetChange = useCallback((target: [number, number, number]) => {
-    cameraCtrlRef.current?.setTarget(target);
-  }, []);
-
-  const handleCameraPresetChange = useCallback((presetName: string) => {
-    goTo(presetName);
-  }, []);
 
   // ============================================================================
   // RENDER FUNCTION - This returns the HTML/JSX that gets displayed
@@ -169,28 +152,9 @@ export default function App() {
   return (
     // Main container - full viewport size (100vw = 100% viewport width, 100dvh = 100% viewport height)
     <div style={{ width: '100vw', height: '100dvh' }}>
-      {/* 
-        DEBUG OVERLAY - Fixed UI element outside the 3D canvas
-        - Shows current camera position and settings
-        - Position fixed means it stays in same screen position when camera moves
-        - Think of this like a HUD (heads-up display) in a game
-      */}
-      <CameraReadout controlsRef={controlsRef} />
 
-      {/* 
-        CAMERA CONTROL OVERLAY - Interactive camera manipulation UI
-        - Allows real-time adjustment of camera position and target
-        - Provides preset buttons and manual sliders for debugging
-        - Positioned outside 3D canvas as UI overlay
-      */}
-      <CameraControlOverlay
-        ref={cameraOverlayRef}
-        onPositionChange={handleCameraPositionChange}
-        onTargetChange={handleCameraTargetChange}
-        onPresetChange={handleCameraPresetChange}
-      />
 
-      {/* 
+      {/*
         CONDITIONAL CLOSE BUTTON - Only shows when zoomed into an object
         - {condition && <element>} is React's way of conditional rendering
         - Like an if statement that controls whether HTML gets created
@@ -226,16 +190,16 @@ export default function App() {
         </div>
       )}
 
-      {/* 
+      {/*
         ============================================================================
         THREE.JS CANVAS - The main 3D rendering area
         ============================================================================
-        
+
         CANVAS EXPLANATION:
         - Think of this like initializing OpenGL context in C++ or creating a renderer
         - Everything inside <Canvas> has access to Three.js functionality
         - Similar to a game engine's render window or viewport
-        
+
         CANVAS PROPERTIES EXPLAINED:
       */}
       <Canvas
@@ -258,16 +222,16 @@ export default function App() {
         // Callback fired when Three.js is ready - sets initial camera position without animation
         onCreated={() => cameraCtrlRef.current?.applyViewPreset('overview', { animate: false })}
       >
-        {/* 
+        {/*
           ========================================================================
           SCENE COMPONENTS - The 3D objects and systems inside the Canvas
           ========================================================================
-          
+
           IMPORTANT: Everything inside <Canvas> has access to Three.js context
           Think of this like objects added to a 3D scene graph
         */}
 
-        {/* 
+        {/*
           CAMERA CONTROLLER - Handles smooth camera animations and user input
           - "Headless" means it doesn't render anything visible, just manages camera
           - Like a camera controller class in a 3D engine
@@ -275,7 +239,7 @@ export default function App() {
         */}
         <CameraController ref={cameraCtrlRef} controlsRef={controlsRef} />
 
-        {/* 
+        {/*
           LIGHTING SETUP - Illuminates the 3D scene
           Think of this like setting up lights in a 3D modeling program
         */}
@@ -302,7 +266,7 @@ export default function App() {
           shadow-camera-bottom={-8} // Bottom bound of shadow area
         />
 
-        {/* 
+        {/*
           PROCEDURAL SKY - Generates realistic sky based on sun position
           Like a skybox but procedurally generated using atmospheric scattering
         */}
@@ -314,12 +278,12 @@ export default function App() {
           mieDirectionalG={0.9} // How directional the scattering is
         />
 
-        {/* 
+        {/*
           SUN VISUALIZATION - Bright sphere that appears as the sun
           This is needed for the GodRays post-processing effect
         */}
         <mesh ref={handleSunRef} position={sunPos} frustumCulled={false}>
-          {/* 
+          {/*
             MESH EXPLANATION:
             - mesh = geometry + material (like a 3D model with textures)
             - Think of geometry as the shape/vertices, material as the surface properties
@@ -329,7 +293,7 @@ export default function App() {
           <meshBasicMaterial color="#ffffff" /> {/* Unlit white material (always bright) */}
         </mesh>
 
-        {/* 
+        {/*
           ORBIT CONTROLS - Handles mouse/touch interaction with the camera
           Like FPS camera controls but orbiting around a target point
         */}
@@ -339,19 +303,19 @@ export default function App() {
           enableDamping // Smooth motion with momentum (like inertia)
         />
 
-        {/* 
+        {/*
           ========================================================================
           3D MODEL LOADING AND INTERACTION
           ========================================================================
         */}
 
-        {/* 
+        {/*
           SUSPENSE - React's way of handling async loading (like loading screens)
           Shows fallback content while the 3D model is loading from the server
           Similar to showing a loading spinner while loading game assets
         */}
         <Suspense fallback={<Html center>Loading room…</Html>}>
-          {/* 
+          {/*
             MAIN 3D MODEL COMPONENT - Manual positioning to keep natural origin
             Model origin (back wall center, floor level) = Scene origin [0,0,0]
             This prevents camera pivot issues and makes coordinates more intuitive
@@ -362,16 +326,16 @@ export default function App() {
           />
         </Suspense>
 
-        {/* 
+        {/*
           ========================================================================
           POST-PROCESSING EFFECTS - Visual effects applied after 3D rendering
           ========================================================================
-          
+
           Think of this like Instagram filters but for 3D graphics
           Effects are applied to the final rendered image
         */}
         <EffectComposer>
-          {/* 
+          {/*
             CONDITIONAL EFFECT RENDERING - Only add God Rays when sun mesh is ready
             God Rays = light beams emanating from bright light sources
             Like lens flares or sunbeams through fog
