@@ -39,32 +39,32 @@ export const CAMERA_PRESETS = {
   // Main overview - shows the entire room from a good vantage point
   // Back wall origin: camera positioned forward and up from back wall
   overview: {
-    position: [0, 2, 5], // Camera positioned at back wall center, up, and forward
+    position: [0, 2, 6], // Camera positioned at back wall center, up, and forward
     target: [0, 1, 2], // Looking toward middle of room from back wall
   },
 
   // Workstation area - focuses on desk/computer setup
   workstation: {
-    position: [2, 2, 4], // Camera on right side, forward from back wall
-    target: [2, 1, 2], // Looking at workstation area
+    position: [0, 1.4, 2.4], // Camera on right side, forward from back wall
+    target: [0, 0.6, 0], // Looking at workstation area
   },
 
   // Maker area - focuses on 3D printer and electronics
   makerbay: {
-    position: [-2, 2, 3], // Camera on left side, forward from back wall
-    target: [-1, 1, 1], // Looking at maker/electronics area
+    position: [-2, 1.4, 2.1], // Camera on left side, forward from back wall
+    target: [-2.2, 1, 1], // Looking at maker/electronics area
   },
 
   // Server rack - focuses on computer equipment
   server: {
-    position: [0, 2, 1], // Camera close to back wall, elevated
-    target: [0, 1, 0.5], // Looking at equipment near back wall
+    position: [1.5, 2.6, 3.5], // Camera close to back wall, elevated
+    target: [2.4, 1.2, 0.5], // Looking at equipment near back wall
   },
 
   // Shelf area - focuses on storage and display items
   shelf: {
-    position: [-2, 1.5, 2], // Camera on far left side
-    target: [-1.5, 1, 1], // Looking at shelf area
+    position: [0, 2, 2], // Camera on far left side
+    target: [0, 1.9, 1], // Looking at shelf area
   },
 };
 
