@@ -25,6 +25,9 @@
  * 4. Handle user interactions (clicks, camera movement)
  */
 
+// STYLES IMPORT - Component-specific CSS
+import './App.css';
+
 // REACT IMPORTS - Core React functionality
 import { Suspense, useRef, useState, useCallback } from 'react';
 
@@ -38,6 +41,7 @@ import RoomModelInteractive from './components/RoomModelInteractive'; // Handles
 import { CameraController } from './camera/CameraController'; // Manages camera animations and positioning
 import { CAMERA_PRESETS } from './camera/presets'; // Static camera position definitions
 import CameraReadout from './camera/CameraReadout'; // Debug overlay showing camera info
+import CameraControlOverlay, { CameraControlOverlayRef } from './camera/CameraControlOverlay'; // Interactive camera controls
 
 /**
  * Main App Component Function
@@ -73,7 +77,16 @@ export default function App() {
   // This allows calling methods on the CameraController from outside
   const cameraCtrlRef = useRef<{
     applyViewPreset: (name: any, options?: { animate?: boolean }) => void;
+    setPosition: (position: [number, number, number]) => void;
+    setTarget: (target: [number, number, number]) => void;
+    setPositionAndTarget: (
+      position: [number, number, number],
+      target: [number, number, number]
+    ) => void;
   } | null>(null);
+
+  // Reference to CameraControlOverlay for managing the control UI
+  const cameraOverlayRef = useRef<CameraControlOverlayRef>(null);
 
   // Tracks UI state - are we zoomed into a specific object or viewing overview?
   const [isZoomedIn, setIsZoomedIn] = useState(false);
@@ -121,6 +134,22 @@ export default function App() {
   // Convenience function to return to main overview
   const goToOverview = () => goTo('overview');
 
+  /**
+   * Camera Control Overlay Handlers
+   * Handle manual camera position and target adjustments from UI overlay
+   */
+  const handleCameraPositionChange = useCallback((position: [number, number, number]) => {
+    cameraCtrlRef.current?.setPosition(position);
+  }, []);
+
+  const handleCameraTargetChange = useCallback((target: [number, number, number]) => {
+    cameraCtrlRef.current?.setTarget(target);
+  }, []);
+
+  const handleCameraPresetChange = useCallback((presetName: string) => {
+    goTo(presetName);
+  }, []);
+
   // ============================================================================
   // RENDER FUNCTION - This returns the HTML/JSX that gets displayed
   // ============================================================================
@@ -147,6 +176,19 @@ export default function App() {
         - Think of this like a HUD (heads-up display) in a game
       */}
       <CameraReadout controlsRef={controlsRef} />
+
+      {/* 
+        CAMERA CONTROL OVERLAY - Interactive camera manipulation UI
+        - Allows real-time adjustment of camera position and target
+        - Provides preset buttons and manual sliders for debugging
+        - Positioned outside 3D canvas as UI overlay
+      */}
+      <CameraControlOverlay
+        ref={cameraOverlayRef}
+        onPositionChange={handleCameraPositionChange}
+        onTargetChange={handleCameraTargetChange}
+        onPresetChange={handleCameraPresetChange}
+      />
 
       {/* 
         CONDITIONAL CLOSE BUTTON - Only shows when zoomed into an object

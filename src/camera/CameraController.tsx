@@ -182,6 +182,62 @@ export const CameraController = forwardRef<
   });
 
   // ============================================================================
+  // MANUAL CAMERA CONTROL FUNCTIONS
+  // ============================================================================
+
+  /**
+   * SET CAMERA POSITION MANUALLY
+   * Updates camera position immediately without animation
+   */
+  const setPosition = (position: [number, number, number]) => {
+    // Cancel any running animation
+    animRef.current = null;
+
+    // Apply position immediately
+    camera.position.set(...position);
+
+    // Update orbit controls
+    if (controlsRef?.current) {
+      controlsRef.current.update();
+    }
+  };
+
+  /**
+   * SET CAMERA TARGET MANUALLY
+   * Updates look-at target immediately without animation
+   */
+  const setTarget = (target: [number, number, number]) => {
+    // Cancel any running animation
+    animRef.current = null;
+
+    // Apply target immediately
+    if (controlsRef?.current) {
+      controlsRef.current.target.set(...target);
+      controlsRef.current.update();
+    }
+  };
+
+  /**
+   * SET BOTH POSITION AND TARGET
+   * Updates camera position and target simultaneously
+   */
+  const setPositionAndTarget = (
+    position: [number, number, number],
+    target: [number, number, number]
+  ) => {
+    // Cancel any running animation
+    animRef.current = null;
+
+    // Apply both values immediately
+    camera.position.set(...position);
+
+    if (controlsRef?.current) {
+      controlsRef.current.target.set(...target);
+      controlsRef.current.update();
+    }
+  };
+
+  // ============================================================================
   // ANIMATION HELPER FUNCTIONS
   // ============================================================================
 
@@ -288,10 +344,16 @@ export const CameraController = forwardRef<
    * useImperativeHandle allows parent components to call our methods
    * Think of this like exposing a public API from a class
    *
-   * The parent can now call: cameraCtrlRef.current.applyViewPreset('overview')
+   * The parent can now call:
+   * - cameraCtrlRef.current.applyViewPreset('overview')
+   * - cameraCtrlRef.current.setPosition([5, 3, 8])
+   * - cameraCtrlRef.current.setTarget([0, 1, 0])
    */
   useImperativeHandle(ref, () => ({
-    applyViewPreset, // Only method we expose to parent
+    applyViewPreset, // Apply predefined camera preset with animation
+    setPosition, // Manually set camera position (immediate)
+    setTarget, // Manually set camera target (immediate)
+    setPositionAndTarget, // Set both position and target simultaneously
   }));
 
   // Return null because this is a "headless" component
