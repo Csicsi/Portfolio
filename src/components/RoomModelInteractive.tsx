@@ -49,11 +49,13 @@ import { useEffect, useMemo, useState } from 'react';
 interface RoomModelInteractiveProps {
   onGoToGroup: (groupName: string) => void;
   onGoToOverview: () => void;
+  isZoomedIn?: boolean;
 }
 
 export default function RoomModelInteractive({
   onGoToGroup,
   onGoToOverview,
+  isZoomedIn,
 }: RoomModelInteractiveProps) {
   // ============================================================================
   // 3D MODEL LOADING
@@ -312,6 +314,17 @@ export default function RoomModelInteractive({
     if (mode === 'out') Object.keys(groups).forEach((g) => setHoverGroup(g, false));
     else setHoverObject(e.object as THREE.Mesh, false);
   };
+
+  // Keep component interaction mode in sync with parent UI state.
+  // When parent indicates we're not zoomed in anymore (e.g. user clicked the overlay X),
+  // reset internal mode and active group so clicking the same object works again.
+  useEffect(() => {
+    if (typeof isZoomedIn === 'boolean' && !isZoomedIn) {
+      clearAllHighlights();
+      setMode('out');
+      setActiveGroup(null);
+    }
+  }, [isZoomedIn]);
 
   /** Return to overview */
   const goOverview = () => {

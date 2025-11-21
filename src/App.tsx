@@ -323,6 +323,7 @@ export default function App() {
           <RoomModelInteractive
             onGoToGroup={goTo} // Callback when user clicks an object group
             onGoToOverview={goToOverview} // Callback to return to overview
+            isZoomedIn={isZoomedIn}
           />
         </Suspense>
 
