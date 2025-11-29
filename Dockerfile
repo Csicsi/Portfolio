@@ -17,7 +17,14 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-COPY nginx/ssl /etc/nginx/ssl
+RUN apk add --no-cache openssl
+
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -newkey rsa:4096 \
+      -keyout /etc/nginx/ssl/selfsigned.key \
+      -out /etc/nginx/ssl/selfsigned.crt \
+      -days 365 \
+      -subj "/CN=localhost"
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 
