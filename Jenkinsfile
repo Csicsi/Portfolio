@@ -1,20 +1,36 @@
 pipeline {
     agent any
+
     stages {
+
         stage('Clone') {
             steps {
                 checkout scm
             }
         }
-        stage('Test') {
+
+        stage('Build Image') {
             steps {
-                sh 'echo "Run your tests here"'
+                sh 'docker compose build'
             }
         }
+
         stage('Deploy') {
             steps {
-                sh 'echo "Deploy your app here"'
+                sh '''
+                    docker compose down
+                    docker compose up -d --build
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Site deployed successfully!"
+        }
+        failure {
+            echo "Deployment failed!"
         }
     }
 }
