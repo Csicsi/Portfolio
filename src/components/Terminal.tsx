@@ -10,8 +10,18 @@ export default function Terminal() {
   const [history, setHistory] = useState<Command[]>([]);
   const [input, setInput] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isMobile, setIsMobile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -28,15 +38,35 @@ export default function Terminal() {
   }, [history]);
 
   useEffect(() => {
+    const fullAsciiArt = [
+      '______            _      _   _____     _                _    ',
+      '|  _  \\          (_)    | | /  __ \\   (_)              | |   ',
+      '| | | |__ _ _ __  _  ___| | | /  \\/___  _  ___ ___  __ _| | __',
+      "| | | / _` | '_ \\| |/ _ \\ | | |   / __| |/ __/ __|/ _` | |/ /",
+      '| |/ / (_| | | | | |  __/ | | \\__/\\__ \\ | (__\\__ \\ (_| |   < ',
+      '|___/ \\__,_|_| |_|_|\\___|_|  \\____/___/_|\\___|___/\\__,_|_|\\_\\',
+    ];
+
+    const mobileAsciiArt = [
+      '______            _      _ ',
+      '|  _  \\          (_)    | |',
+      '| | | |__ _ _ __  _  ___| |',
+      "| | | / _` | '_ \\| |/ _ \\ |",
+      '| |/ / (_| | | | | |  __/ |',
+      '|___/ \\__,_|_| |_|_|\\___|_|',
+      '',
+      '   _____     _                _    ',
+      '  /  __ \\   (_)              | |   ',
+      '  | /  \\/___  _  ___ ___  __ _| | __',
+      '  | |   / __| |/ __/ __|/ _` | |/ /',
+      '  | \\__/\\__ \\ | (__\\__ \\ (_| |   < ',
+      '   \\____/___/_|\\___|___/\\__,_|_|\\_\\',
+    ];
+
     const welcomeCommand: Command = {
       input: '',
       output: [
-        '______            _      _   _____     _                _    ',
-        '|  _  \\          (_)    | | /  __ \\   (_)              | |   ',
-        '| | | |__ _ _ __  _  ___| | | /  \\/___  _  ___ ___  __ _| | __',
-        "| | | / _` | '_ \\| |/ _ \\ | | |   / __| |/ __/ __|/ _` | |/ /",
-        '| |/ / (_| | | | | |  __/ | | \\__/\\__ \\ | (__\\__ \\ (_| |   < ',
-        '|___/ \\__,_|_| |_|_|\\___|_|  \\____/___/_|\\___|___/\\__,_|_|\\_\\',
+        ...(isMobile ? mobileAsciiArt : fullAsciiArt),
         '',
         '',
         'Welcome to my portfolio!',
@@ -45,7 +75,7 @@ export default function Terminal() {
       ],
     };
     setHistory([welcomeCommand]);
-  }, []);
+  }, [isMobile]);
 
   const commands: { [key: string]: (arg?: string) => string[] } = {
     help: () => [
