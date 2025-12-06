@@ -16,6 +16,7 @@ export default function Terminal() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isMobile, setIsMobile] = useState(false);
   const [showCub3d, setShowCub3d] = useState(false);
+  const [preloadCub3d, setPreloadCub3d] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElementWithFocus>(null);
@@ -31,6 +32,11 @@ export default function Terminal() {
 
   useEffect(() => {
     inputRef.current?.focus();
+    // Start preloading cub3d in background after 2 seconds
+    const preloadTimer = setTimeout(() => {
+      setPreloadCub3d(true);
+    }, 2000);
+    return () => clearTimeout(preloadTimer);
   }, []);
 
   useEffect(() => {
@@ -225,8 +231,17 @@ export default function Terminal() {
     ],
 
     cub3d: () => {
+      if (!preloadCub3d) {
+        setPreloadCub3d(true);
+      }
       setShowCub3d(true);
-      return ['Launching cub3D...', 'Press ESC or click outside to close', ''];
+      return [
+        'Launching cub3D...',
+        '',
+        'Controls: WASD to move, Arrow keys to look',
+        'Press ESC or click outside to close',
+        '',
+      ];
     },
 
     '3d': () => {
@@ -385,7 +400,7 @@ export default function Terminal() {
         </div>
       </div>
 
-      {showCub3d && (
+      {preloadCub3d && (
         <div
           onClick={() => setShowCub3d(false)}
           style={{
@@ -395,7 +410,7 @@ export default function Terminal() {
             width: '100vw',
             height: '100vh',
             backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            display: 'flex',
+            display: showCub3d ? 'flex' : 'none',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
