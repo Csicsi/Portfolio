@@ -6,13 +6,19 @@ interface Command {
   output: string[];
 }
 
+interface HTMLIFrameElementWithFocus extends HTMLIFrameElement {
+  focus(): void;
+}
+
 export default function Terminal() {
   const [history, setHistory] = useState<Command[]>([]);
   const [input, setInput] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isMobile, setIsMobile] = useState(false);
+  const [showCub3d, setShowCub3d] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElementWithFocus>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -26,6 +32,32 @@ export default function Terminal() {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    const handleEscape = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && showCub3d) {
+        setShowCub3d(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [showCub3d]);
+
+  useEffect(() => {
+    if (showCub3d && iframeRef.current) {
+      // Give the iframe time to load, then focus it
+      const timer = setTimeout(() => {
+        iframeRef.current?.focus();
+        // Also try to focus the canvas inside the iframe
+        try {
+          iframeRef.current?.contentWindow?.focus();
+        } catch (e) {
+          console.log('Could not focus iframe content');
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showCub3d]);
 
   const handleContainerClick = () => {
     inputRef.current?.focus();
@@ -86,6 +118,7 @@ export default function Terminal() {
       '  projects             - List all featured projects',
       '  projects <name>      - View a specific project',
       '  contact              - Get my contact information',
+      '  cub3d                - Play cub3D raycaster game',
       '  3d                   - View the 3D portfolio',
       '  clear                - Clear the terminal',
       '',
@@ -146,6 +179,7 @@ export default function Terminal() {
           'cub3d',
           '=====',
           'A Wolfenstein-style 3D raycaster game engine.',
+          'Compiled to WebAssembly - type "cub3d" to play!',
           'GitHub: https://github.com/Csicsi/cub3d',
           '',
         ],
@@ -190,6 +224,11 @@ export default function Terminal() {
       '',
     ],
 
+    cub3d: () => {
+      setShowCub3d(true);
+      return ['Launching cub3D...', 'Press ESC or click outside to close', ''];
+    },
+
     '3d': () => {
       setTimeout(() => {
         window.location.href = '/old';
@@ -228,6 +267,11 @@ export default function Terminal() {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape' && showCub3d) {
+      setShowCub3d(false);
+      return;
+    }
+
     if (e.key === 'Enter') {
       executeCommand(input);
       setInput('');
@@ -340,6 +384,92 @@ export default function Terminal() {
           </Link>
         </div>
       </div>
+
+      {showCub3d && (
+        <div
+          onClick={() => setShowCub3d(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              // Focus iframe when clicking inside the container
+              iframeRef.current?.focus();
+              try {
+                iframeRef.current?.contentWindow?.focus();
+              } catch (err) {
+                console.log('Could not focus iframe content');
+              }
+            }}
+            style={{
+              position: 'relative',
+              width: '90%',
+              height: '90%',
+              maxWidth: '1200px',
+              maxHeight: '800px',
+              backgroundColor: '#000',
+              border: '2px solid #00ff00',
+              boxShadow: '0 0 20px rgba(0, 255, 0, 0.5)',
+              borderRadius: '4px',
+              overflow: 'hidden',
+            }}
+          >
+            <button
+              onClick={() => setShowCub3d(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 1001,
+                backgroundColor: '#000',
+                color: '#00ff00',
+                border: '1px solid #00ff00',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                fontFamily: '"Courier New", Courier, monospace',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#00ff00';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#000';
+                e.currentTarget.style.color = '#00ff00';
+              }}
+            >
+              Close
+            </button>
+            <iframe
+              ref={iframeRef}
+              src="/cub3d/cub3d.html"
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+              }}
+              title="cub3D Game"
+              tabIndex={0}
+              allow="autoplay"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

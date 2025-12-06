@@ -7,7 +7,7 @@ import importPlugin from 'eslint-plugin-import';
 import unused from 'eslint-plugin-unused-imports';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'coverage'] },
+  { ignores: ['dist', 'node_modules', 'coverage', 'public/cub3d'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
