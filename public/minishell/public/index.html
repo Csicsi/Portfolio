@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minishell Terminal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #300a24;
+      }
+      body {
+        font-family: 'Ubuntu Mono', 'Courier New', monospace;
+        display: flex;
+        flex-direction: column;
+      }
+      .terminal-header {
+        background: linear-gradient(to bottom, #4a4a4a 0%, #3a3a3a 100%);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #2a2a2a;
+        flex-shrink: 0;
+      }
+      .window-controls {
+        display: flex;
+        gap: 8px;
+      }
+      .control-btn {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.3);
+      }
+      .control-btn.close {
+        background: linear-gradient(135deg, #f46067 0%, #dc3e45 100%);
+      }
+      .control-btn.minimize {
+        background: linear-gradient(135deg, #f0db4f 0%, #d4bb2e 100%);
+      }
+      .control-btn.maximize {
+        background: linear-gradient(135deg, #5fb560 0%, #4a9a4b 100%);
+      }
+      .terminal-title {
+        flex: 1;
+        text-align: center;
+        color: #ddd;
+        font-size: 13px;
+        font-weight: 500;
+        user-select: none;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      }
+      #terminal-container {
+        flex: 1;
+        padding: 10px;
+        background: #300a24;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #terminal {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+      }
+      #terminal .xterm {
+        height: 100%;
+        padding: 0;
+      }
+      #terminal .xterm-viewport {
+        background: #300a24 !important;
+        overflow-y: auto !important;
+      }
+      #terminal .xterm-screen {
+        height: 100% !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="terminal-header">
+      <div class="window-controls">
+        <div class="control-btn close"></div>
+        <div class="control-btn minimize"></div>
+        <div class="control-btn maximize"></div>
+      </div>
+      <div class="terminal-title" id="terminal-title">minishell</div>
+    </div>
+    <div id="terminal-container">
+      <div id="terminal"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script>
+      const term = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: '"Ubuntu Mono", "Courier New", monospace',
+        theme: {
+          background: '#300a24',
+          foreground: '#ffffff',
+          cursor: '#ffffff',
+          black: '#2e3436',
+          red: '#cc0000',
+          green: '#4e9a06',
+          yellow: '#c4a000',
+          blue: '#3465a4',
+          magenta: '#75507b',
+          cyan: '#06989a',
+          white: '#d3d7cf',
+          brightBlack: '#555753',
+          brightRed: '#ef2929',
+          brightGreen: '#8ae234',
+          brightYellow: '#fce94f',
+          brightBlue: '#729fcf',
+          brightMagenta: '#ad7fa8',
+          brightCyan: '#34e2e2',
+          brightWhite: '#eeeeec',
+        },
+      });
+
+      const fitAddon = new FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(document.getElementById('terminal'));
+
+      // Fit terminal to container
+      function fitTerminal() {
+        try {
+          fitAddon.fit();
+        } catch (e) {
+          console.error('Fit error:', e);
+        }
+      }
+
+      // Initial fit after a short delay
+      setTimeout(fitTerminal, 100);
+
+      let ws, sessionId;
+
+      function connect() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/minishell/ws`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('Connected to minishell');
+          fitTerminal();
+          // Send initial resize
+          setTimeout(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(
+                JSON.stringify({
+                  type: 'resize',
+                  cols: term.cols,
+                  rows: term.rows,
+                })
+              );
+            }
+          }, 200);
+        };
+
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            switch (msg.type) {
+              case 'connected':
+                sessionId = msg.sessionId;
+                document.getElementById('terminal-title').textContent = 'minishell';
+                break;
+              case 'output':
+                term.write(msg.data);
+                break;
+              case 'error':
+                term.writeln('\x1b[1;31m' + msg.data + '\x1b[0m');
+                break;
+            }
+          } catch (err) {
+            console.error('Parse error:', err);
+          }
+        };
+
+        ws.onclose = () => {
+          document.getElementById('terminal-title').textContent = 'minishell - disconnected';
+          term.writeln('');
+          term.writeln('\x1b[90mSession ended. Refresh to reconnect.\x1b[0m');
+        };
+
+        ws.onerror = (err) => {
+          console.error('WebSocket error:', err);
+        };
+      }
+
+      term.onData((data) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'input', data }));
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        fitTerminal();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: 'resize',
+              cols: term.cols,
+              rows: term.rows,
+            })
+          );
+        }
+      });
+
+      // Connect on load
+      connect();
+    </script>
+  </body>
+</html>

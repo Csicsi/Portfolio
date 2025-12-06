@@ -3,3 +3,7 @@ public/cub3d/* linguist-generated=true
 public/cub3d/*.js binary
 public/cub3d/*.wasm binary
 public/cub3d/*.data binary
+
+# Minishell binary and generated files
+public/minishell/minishell binary
+public/minishell/node_modules/** linguist-generated=true

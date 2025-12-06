@@ -7,6 +7,10 @@ COPY package*.json ./
 RUN npm ci || npm install
 
 COPY . .
+
+# Clean up minishell node_modules before building (not needed in final build)
+RUN rm -rf public/minishell/node_modules public/minishell/package-lock.json
+
 RUN npm run build
 
 

@@ -17,9 +17,11 @@ export default function Terminal() {
   const [isMobile, setIsMobile] = useState(false);
   const [showCub3d, setShowCub3d] = useState(false);
   const [preloadCub3d, setPreloadCub3d] = useState(false);
+  const [showMinishell, setShowMinishell] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElementWithFocus>(null);
+  const minishellIframeRef = useRef<HTMLIFrameElementWithFocus>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -44,10 +46,13 @@ export default function Terminal() {
       if (e.key === 'Escape' && showCub3d) {
         setShowCub3d(false);
       }
+      if (e.key === 'Escape' && showMinishell) {
+        setShowMinishell(false);
+      }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [showCub3d]);
+  }, [showCub3d, showMinishell]);
 
   useEffect(() => {
     if (showCub3d && iframeRef.current) {
@@ -64,6 +69,21 @@ export default function Terminal() {
       return () => clearTimeout(timer);
     }
   }, [showCub3d]);
+
+  useEffect(() => {
+    if (showMinishell && minishellIframeRef.current) {
+      // Give the iframe time to load, then focus it
+      const timer = setTimeout(() => {
+        minishellIframeRef.current?.focus();
+        try {
+          minishellIframeRef.current?.contentWindow?.focus();
+        } catch (e) {
+          console.log('Could not focus minishell iframe');
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showMinishell]);
 
   const handleContainerClick = () => {
     inputRef.current?.focus();
@@ -125,6 +145,7 @@ export default function Terminal() {
       '  projects <name>      - View a specific project',
       '  contact              - Get my contact information',
       '  cub3d                - Play cub3D raycaster game',
+      '  minishell            - Try interactive minishell demo',
       '  3d                   - View the 3D portfolio',
       '  clear                - Clear the terminal',
       '',
@@ -244,6 +265,17 @@ export default function Terminal() {
       ];
     },
 
+    minishell: () => {
+      setShowMinishell(true);
+      return [
+        'Launching minishell...',
+        '',
+        'Interactive UNIX shell running in Docker sandbox',
+        'Press ESC or click outside to close',
+        '',
+      ];
+    },
+
     '3d': () => {
       setTimeout(() => {
         window.location.href = '/old';
@@ -284,6 +316,10 @@ export default function Terminal() {
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape' && showCub3d) {
       setShowCub3d(false);
+      return;
+    }
+    if (e.key === 'Escape' && showMinishell) {
+      setShowMinishell(false);
       return;
     }
 
@@ -393,8 +429,7 @@ export default function Terminal() {
             fontSize: '11px',
             color: '#00ff0066',
           }}
-        >
-        </div>
+        ></div>
       </div>
 
       {preloadCub3d && (
@@ -476,6 +511,91 @@ export default function Terminal() {
                 border: 'none',
               }}
               title="cub3D Game"
+              tabIndex={0}
+            />
+          </div>
+        </div>
+      )}
+
+      {showMinishell && (
+        <div
+          onClick={() => setShowMinishell(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              // Focus iframe when clicking inside the container
+              minishellIframeRef.current?.focus();
+              try {
+                minishellIframeRef.current?.contentWindow?.focus();
+              } catch (err) {
+                console.log('Could not focus minishell iframe');
+              }
+            }}
+            style={{
+              position: 'relative',
+              width: '90%',
+              height: '90%',
+              maxWidth: '1200px',
+              maxHeight: '800px',
+              backgroundColor: '#000',
+              border: '2px solid #00ff00',
+              boxShadow: '0 0 20px rgba(0, 255, 0, 0.5)',
+              borderRadius: '4px',
+              overflow: 'hidden',
+            }}
+          >
+            <button
+              onClick={() => setShowMinishell(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 1001,
+                backgroundColor: '#000',
+                color: '#00ff00',
+                border: '1px solid #00ff00',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                fontFamily: '"Courier New", Courier, monospace',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#00ff00';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#000';
+                e.currentTarget.style.color = '#00ff00';
+              }}
+            >
+              Close
+            </button>
+            <iframe
+              ref={minishellIframeRef}
+              src="/minishell/public/index.html"
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+              }}
+              title="Minishell Terminal"
               tabIndex={0}
             />
           </div>
