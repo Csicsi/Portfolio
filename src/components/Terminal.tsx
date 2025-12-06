@@ -465,7 +465,6 @@ export default function Terminal() {
               }}
               title="cub3D Game"
               tabIndex={0}
-              allow="autoplay"
             />
           </div>
         </div>

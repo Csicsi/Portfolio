@@ -73,6 +73,10 @@
     <script>
       var Module = {
         canvas: document.getElementById('canvas'),
+        locateFile: function (path, prefix) {
+          // Ensure files are loaded from the same directory as the HTML
+          return '/cub3d/' + path;
+        },
         onRuntimeInitialized: function () {
           document.getElementById('spinner').style.display = 'none';
         },
