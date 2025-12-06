@@ -292,15 +292,38 @@
 
       // Mobile touch control handler
       function simulateKey(key, isDown) {
+        var keyCode;
+        var code;
+        
+        // Map keys to proper keyCodes
+        var keyMap = {
+          'w': { keyCode: 87, code: 'KeyW' },
+          'a': { keyCode: 65, code: 'KeyA' },
+          's': { keyCode: 83, code: 'KeyS' },
+          'd': { keyCode: 68, code: 'KeyD' },
+          'ArrowLeft': { keyCode: 37, code: 'ArrowLeft' },
+          'ArrowRight': { keyCode: 39, code: 'ArrowRight' },
+          'ArrowUp': { keyCode: 38, code: 'ArrowUp' },
+          'ArrowDown': { keyCode: 40, code: 'ArrowDown' }
+        };
+        
+        var mappedKey = keyMap[key] || { keyCode: key.charCodeAt(0), code: key };
+        
         var event = new KeyboardEvent(isDown ? 'keydown' : 'keyup', {
           key: key,
-          code: key,
-          keyCode: key.charCodeAt(0),
-          which: key.charCodeAt(0),
+          code: mappedKey.code,
+          keyCode: mappedKey.keyCode,
+          which: mappedKey.keyCode,
           bubbles: true,
-          cancelable: true
+          cancelable: true,
+          view: window
         });
+        
+        // Dispatch to both canvas and document
+        var canvas = document.getElementById('canvas');
+        if (canvas) canvas.dispatchEvent(event);
         document.dispatchEvent(event);
+        window.dispatchEvent(event);
       }
 
       // Add touch event listeners for mobile controls

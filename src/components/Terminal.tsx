@@ -394,9 +394,6 @@ export default function Terminal() {
             color: '#00ff0066',
           }}
         >
-          <Link to="/old" style={{ color: '#00ff0066', textDecoration: 'underline' }}>
-            View 3D version
-          </Link>
         </div>
       </div>
 
