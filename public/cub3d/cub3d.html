@@ -328,7 +328,7 @@
 
       // Add touch event listeners for mobile controls
       document.addEventListener('DOMContentLoaded', function() {
-        var activeKeys = new Set();
+        var activeKeys = new Map(); // Changed to Map to store interval IDs
         
         document.querySelectorAll('.control-btn[data-key]').forEach(function(btn) {
           var key = btn.getAttribute('data-key');
@@ -337,8 +337,15 @@
           btn.addEventListener('touchstart', function(e) {
             e.preventDefault();
             if (!activeKeys.has(key)) {
-              activeKeys.add(key);
+              // Initial key down
               simulateKey(key, true);
+              
+              // Set up key repeat every 50ms
+              var intervalId = setInterval(function() {
+                simulateKey(key, true);
+              }, 50);
+              
+              activeKeys.set(key, intervalId);
             }
           });
           
@@ -346,6 +353,7 @@
           btn.addEventListener('touchend', function(e) {
             e.preventDefault();
             if (activeKeys.has(key)) {
+              clearInterval(activeKeys.get(key));
               activeKeys.delete(key);
               simulateKey(key, false);
             }
@@ -355,6 +363,7 @@
           btn.addEventListener('touchcancel', function(e) {
             e.preventDefault();
             if (activeKeys.has(key)) {
+              clearInterval(activeKeys.get(key));
               activeKeys.delete(key);
               simulateKey(key, false);
             }
