@@ -207,8 +207,8 @@
       .control-btn.center {
         grid-column: 2;
         grid-row: 2;
-        pointer-events: none;
-        opacity: 0.3;
+        pointer-events: auto;
+        opacity: 0.9;
       }
 
       @media (min-width: 768px) {
@@ -241,7 +241,7 @@
         <div class="control-btn" data-key="w">↑</div>
         <div></div>
         <div class="control-btn" data-key="a">←</div>
-        <div class="control-btn center">•</div>
+        <div class="control-btn center" data-key="e">•</div>
         <div class="control-btn" data-key="d">→</div>
         <div></div>
         <div class="control-btn" data-key="s">↓</div>
@@ -301,6 +301,7 @@
           'a': { keyCode: 65, code: 'KeyA' },
           's': { keyCode: 83, code: 'KeyS' },
           'd': { keyCode: 68, code: 'KeyD' },
+          'e': { keyCode: 69, code: 'KeyE' },
           'ArrowLeft': { keyCode: 37, code: 'ArrowLeft' },
           'ArrowRight': { keyCode: 39, code: 'ArrowRight' },
           'ArrowUp': { keyCode: 38, code: 'ArrowUp' },
@@ -328,46 +329,49 @@
 
       // Add touch event listeners for mobile controls
       document.addEventListener('DOMContentLoaded', function() {
-        var activeKeys = new Map(); // Changed to Map to store interval IDs
-        
+        var activeKeys = new Map(); // store interval IDs
+
+        // Show mobile controls early on touch devices (before WASM runtime initializes)
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          var mc = document.getElementById('mobileControls');
+          if (mc) mc.classList.add('visible');
+        }
+
+        // Helper to start repeating key down events
+        function startKeyRepeat(key) {
+          if (!activeKeys.has(key)) {
+            simulateKey(key, true);
+            var intervalId = setInterval(function() { simulateKey(key, true); }, 50);
+            activeKeys.set(key, intervalId);
+          }
+        }
+
+        // Helper to stop repeating key events
+        function stopKeyRepeat(key) {
+          if (activeKeys.has(key)) {
+            clearInterval(activeKeys.get(key));
+            activeKeys.delete(key);
+            simulateKey(key, false);
+          }
+        }
+
         document.querySelectorAll('.control-btn[data-key]').forEach(function(btn) {
           var key = btn.getAttribute('data-key');
-          
-          // Touch start - key down
-          btn.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (!activeKeys.has(key)) {
-              // Initial key down
-              simulateKey(key, true);
-              
-              // Set up key repeat every 50ms
-              var intervalId = setInterval(function() {
-                simulateKey(key, true);
-              }, 50);
-              
-              activeKeys.set(key, intervalId);
-            }
-          });
-          
-          // Touch end - key up
-          btn.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            if (activeKeys.has(key)) {
-              clearInterval(activeKeys.get(key));
-              activeKeys.delete(key);
-              simulateKey(key, false);
-            }
-          });
-          
-          // Touch cancel - key up
-          btn.addEventListener('touchcancel', function(e) {
-            e.preventDefault();
-            if (activeKeys.has(key)) {
-              clearInterval(activeKeys.get(key));
-              activeKeys.delete(key);
-              simulateKey(key, false);
-            }
-          });
+
+          // Touch events
+          btn.addEventListener('touchstart', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('touchend',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('touchcancel',function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+
+          // Pointer events (covers mouse, stylus, touch on modern browsers)
+          btn.addEventListener('pointerdown', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('pointerup',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('pointercancel', function(e) { e.preventDefault(); stopKeyRepeat(key); });
+
+          // Fallback mouse events
+          btn.addEventListener('mousedown', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('mouseup',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('mouseleave',function(e) { e.preventDefault(); stopKeyRepeat(key);  });
         });
       });
     </script>

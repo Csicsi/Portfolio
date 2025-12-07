@@ -18,6 +18,7 @@ export default function Terminal() {
   const [showCub3d, setShowCub3d] = useState(false);
   const [preloadCub3d, setPreloadCub3d] = useState(false);
   const [showMinishell, setShowMinishell] = useState(false);
+  const [pendingLaunch, setPendingLaunch] = useState<'minishell' | 'cub3d' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElementWithFocus>(null);
@@ -99,7 +100,7 @@ export default function Terminal() {
     const fullAsciiArt = [
       '______            _      _   _____     _                _    ',
       '|  _  \\          (_)    | | /  __ \\   (_)              | |   ',
-      '| | | |__ _ _ __  _  ___| | | /  \\/___  _  ___ ___  __ _| | __',
+      '| | | |__ _ _ __  _  ___| | | /  \\/___  _  ___ ___ __ _| | __',
       "| | | / _` | '_ \\| |/ _ \\ | | |   / __| |/ __/ __|/ _` | |/ /",
       '| |/ / (_| | | | | |  __/ | | \\__/\\__ \\ | (__\\__ \\ (_| |   < ',
       '|___/ \\__,_|_| |_|_|\\___|_|  \\____/___/_|\\___|___/\\__,_|_|\\_\\',
@@ -143,9 +144,8 @@ export default function Terminal() {
       '  skills               - View my technical skills',
       '  projects             - List all featured projects',
       '  projects <name>      - View a specific project',
+      '  projects <name> --demo - Launch a project demo directly',
       '  contact              - Get my contact information',
-      '  cub3d                - Play cub3D raycaster game',
-      '  minishell            - Try interactive minishell demo',
       '  3d                   - View the 3D portfolio',
       '  clear                - Clear the terminal',
       '',
@@ -188,59 +188,118 @@ export default function Terminal() {
           'ft_irc           - IRC server (repo: cseriildi/ft_irc)',
           'ft_transcendence - Multiplayer Pong platform',
           '',
-          'Use: projects <name>',
+          'Use: projects <name> [--demo]',
           '',
         ];
 
-      const p = arg.toLowerCase();
-      const map: any = {
-        minishell: [
-          'minishell',
-          '=========',
-          'A full UNIX shell written in C.',
-          'Features parsing, pipes, redirections, env vars, signals, logic operators.',
-          'GitHub: https://github.com/Csicsi/minishell',
-          '',
-        ],
-        cub3d: [
-          'cub3d',
-          '=====',
-          'A Wolfenstein-style 3D raycaster game engine.',
-          'Compiled to WebAssembly - type "cub3d" to play!',
-          'GitHub: https://github.com/Csicsi/cub3d',
-          '',
-        ],
-        homelab: [
-          'Homelab',
-          '=======',
-          'My personal infrastructure setup with automation, services, and DevOps tooling.',
-          'GitHub: https://github.com/Csicsi/Homelab',
-          '',
-        ],
-        portfolio: [
-          'Portfolio',
-          '=========',
-          'This interactive portfolio terminal + 3D version.',
-          'GitHub: https://github.com/Csicsi/Portfolio',
-          '',
-        ],
-        ft_irc: [
-          'ft_irc',
-          '======',
-          'IRC server in C (collab repo).',
-          'GitHub: https://github.com/cseriildi/ft_irc',
-          '',
-        ],
-        ft_transcendence: [
-          'ft_transcendence',
-          '=================',
-          'Full-stack multiplayer Pong with auth, chat, matchmaking.',
-          'GitHub: https://github.com/cseriildi/ft_transcendence',
-          '',
-        ],
+      // Check for --demo flag
+      const parts = arg.split(' ');
+      const projectName = parts[0].toLowerCase();
+      const hasDemo = parts.includes('--demo');
+
+      const projectMap: any = {
+        minishell: {
+          info: [
+            'minishell',
+            '=========',
+            'A full UNIX shell written in C.',
+            'Features parsing, pipes, redirections, env vars, signals, logic operators.',
+            'GitHub: https://github.com/Csicsi/minishell',
+            '',
+          ],
+          hasDemo: true,
+        },
+        cub3d: {
+          info: [
+            'cub3d',
+            '=====',
+            'A Wolfenstein-style 3D raycaster game engine.',
+            'Compiled to WebAssembly for browser play.',
+            'GitHub: https://github.com/Csicsi/cub3d',
+            '',
+          ],
+          hasDemo: true,
+        },
+        homelab: {
+          info: [
+            'Homelab',
+            '=======',
+            'My personal infrastructure setup with automation, services, and DevOps tooling.',
+            'GitHub: https://github.com/Csicsi/Homelab',
+            '',
+          ],
+          hasDemo: false,
+        },
+        portfolio: {
+          info: [
+            'Portfolio',
+            '=========',
+            'This interactive portfolio terminal + 3D version.',
+            'GitHub: https://github.com/Csicsi/Portfolio',
+            '',
+          ],
+          hasDemo: false,
+        },
+        ft_irc: {
+          info: [
+            'ft_irc',
+            '======',
+            'IRC server in C (collab repo).',
+            'GitHub: https://github.com/cseriildi/ft_irc',
+            '',
+          ],
+          hasDemo: false,
+        },
+        ft_transcendence: {
+          info: [
+            'ft_transcendence',
+            '=================',
+            'Full-stack multiplayer Pong with auth, chat, matchmaking.',
+            'GitHub: https://github.com/cseriildi/ft_transcendence',
+            '',
+          ],
+          hasDemo: false,
+        },
       };
 
-      return map[p] || [`Project not found: ${arg}`, ''];
+      const project = projectMap[projectName];
+
+      if (!project) {
+        return [`Project not found: ${projectName}`, ''];
+      }
+
+      // If --demo flag is present and project has demo
+      if (hasDemo && project.hasDemo) {
+        if (projectName === 'minishell') {
+          setShowMinishell(true);
+          return [...project.info, 'Launching minishell...', ''];
+        } else if (projectName === 'cub3d') {
+          if (!preloadCub3d) {
+            setPreloadCub3d(true);
+          }
+          setShowCub3d(true);
+          return [
+            ...project.info,
+            'Launching cub3D...',
+            '',
+            'Controls: WASD to move, Arrow keys to look, "e" to open doors',
+            '',
+          ];
+        }
+      }
+
+      // If --demo flag but no demo available
+      if (hasDemo && !project.hasDemo) {
+        return [...project.info, 'No interactive demo available for this project.', ''];
+      }
+
+      // Regular info display - set pending launch if demo available
+      if (project.hasDemo) {
+        setPendingLaunch(projectName as 'minishell' | 'cub3d');
+        return [...project.info, 'Launch demo? (y/n):'];
+      }
+
+      return project.info;
     },
 
     contact: () => [
@@ -250,31 +309,6 @@ export default function Terminal() {
       'Email: your-email@example.com',
       '',
     ],
-
-    cub3d: () => {
-      if (!preloadCub3d) {
-        setPreloadCub3d(true);
-      }
-      setShowCub3d(true);
-      return [
-        'Launching cub3D...',
-        '',
-        'Controls: WASD to move, Arrow keys to look',
-        'Press ESC or click outside to close',
-        '',
-      ];
-    },
-
-    minishell: () => {
-      setShowMinishell(true);
-      return [
-        'Launching minishell...',
-        '',
-        'Interactive UNIX shell running in Docker sandbox',
-        'Press ESC or click outside to close',
-        '',
-      ];
-    },
 
     '3d': () => {
       setTimeout(() => {
@@ -293,8 +327,69 @@ export default function Terminal() {
 
     if (!base) return;
 
+    // Handle y/n responses for pending launches
+    if (pendingLaunch) {
+      const response = base.toLowerCase();
+      if (response === 'y' || response === 'yes') {
+        if (pendingLaunch === 'minishell') {
+          setShowMinishell(true);
+          setHistory([
+            ...history,
+            {
+              input: cmd,
+              output: [
+                'Launching minishell...',
+                '',
+                'Interactive UNIX shell running in Docker sandbox',
+                '',
+              ],
+            },
+          ]);
+        } else if (pendingLaunch === 'cub3d') {
+          if (!preloadCub3d) {
+            setPreloadCub3d(true);
+          }
+          setShowCub3d(true);
+          setHistory([
+            ...history,
+            {
+              input: cmd,
+              output: [
+                'Launching cub3D...',
+                '',
+                'Controls: WASD to move, Arrow keys to look, "e" to open doors',
+                '',
+              ],
+            },
+          ]);
+        }
+        setPendingLaunch(null);
+        return;
+      } else if (response === 'n' || response === 'no') {
+        setHistory([
+          ...history,
+          {
+            input: cmd,
+            output: ['Launch cancelled.', ''],
+          },
+        ]);
+        setPendingLaunch(null);
+        return;
+      } else {
+        setHistory([
+          ...history,
+          {
+            input: cmd,
+            output: ['Please answer y or n', ''],
+          },
+        ]);
+        return;
+      }
+    }
+
     if (base === 'clear') {
       setHistory([]);
+      setPendingLaunch(null);
       return;
     }
 
@@ -398,7 +493,7 @@ export default function Terminal() {
         ))}
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ color: '#00ff00', marginRight: '8px' }}>$</span>
+          <span style={{ color: '#00ff00', marginRight: '8px' }}>{pendingLaunch ? '' : '$'}</span>
           <input
             ref={inputRef}
             type="text"
