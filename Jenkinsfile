@@ -5,7 +5,6 @@ pipeline {
         DEPLOY_HOST = '192.168.8.10'
         DEPLOY_USER = 'dcsicsak'
         DEPLOY_PATH = '/home/dcsicsak/portfolio'
-        
         SSH_CREDENTIAL_ID = 'main-node-deploy'
     }
     
@@ -20,33 +19,32 @@ pipeline {
             steps {
                 sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
                     sh '''
-                        # Test SSH connection
                         ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "echo 'SSH connection successful'"
                         
-                        # Deploy commands
-                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} bash << 'ENDSSH'
                         
-                        # Navigate to deployment directory
-                        cd ${DEPLOY_PATH}
-                        
-                        # Pull latest changes
-                        echo "Pulling latest changes from repository..."
-                        git pull origin main
-                        
-                        # Install dependencies (if needed)
-                        # npm install
-                        # pip install -r requirements.txt
-                        
-                        # Build (if needed)
-                        # npm run build
-                        # make build
-                        
-                        # Restart service (adjust based on your setup)
-                        # sudo systemctl restart portfolio.service
-                        # docker-compose up -d
-                        # pm2 restart portfolio
-                        
-                        echo "Deployment completed successfully!"
+# Create directory if needed
+mkdir -p ${DEPLOY_PATH}
+cd ${DEPLOY_PATH}
+
+# Clone or pull
+if [ -d .git ]; then
+    echo "Repository exists, pulling latest changes..."
+    git pull origin main
+else
+    echo "Cloning repository..."
+    git clone https://github.com/Csicsi/Portfolio.git .
+fi
+
+# Stop existing containers
+echo "Stopping existing containers..."
+docker-compose down
+
+# Rebuild and start containers
+echo "Building and starting containers..."
+docker-compose up -d --build
+
+echo "Deployment completed successfully!"
 ENDSSH
                     '''
                 }
