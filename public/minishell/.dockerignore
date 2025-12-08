@@ -1,0 +1,7 @@
+web-demo
+node_modules
+.git
+*.o
+minishell/minishell
+minishell_bonus/minishell
+.github

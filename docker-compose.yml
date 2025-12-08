@@ -1,0 +1,40 @@
+services:
+  portfolio:
+    build: .
+    container_name: portfolio
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: unless-stopped
+    depends_on:
+      - minishell-api
+
+  minishell-runner:
+    build:
+      context: ./public/minishell
+      dockerfile: Dockerfile
+    image: minishell-runner:latest
+    container_name: minishell-runner
+
+  minishell-api:
+    build:
+      context: ./public/minishell
+      dockerfile: Dockerfile.api
+    container_name: minishell-api
+    expose:
+      - '3000'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - ALLOWED_ORIGINS=*
+    user: root
+    depends_on:
+      - minishell-runner
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M

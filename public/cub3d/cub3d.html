@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Cub3D - WebAssembly</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background: #1a1a1a;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Courier New', monospace;
+        color: #fff;
+        position: relative;
+      }
+
+      h1 {
+        margin: 10px 0;
+        font-size: 1.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        position: absolute;
+        top: 10px;
+        z-index: 10;
+      }
+
+      #canvas {
+        border: 2px solid #333;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        max-width: 100vw;
+        max-height: calc(100vh - 60px);
+        width: auto;
+        height: auto;
+      }
+
+      @media (max-width: 767px) {
+        #canvas {
+          max-height: calc(100vh - 270px);
+          width: 100vw !important;
+          height: auto !important;
+        }
+
+        h1 {
+          font-size: 1.2em;
+          margin: 5px 0;
+        }
+      }
+
+      .controls {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .controls h3 {
+        margin-top: 0;
+      }
+
+      .key {
+        display: inline-block;
+        padding: 5px 10px;
+        margin: 2px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+
+      #output {
+        display: none;
+      }
+
+      #spinner {
+        margin: 20px;
+        text-align: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 50;
+      }
+
+      #loadingText {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+        color: #00ff00;
+      }
+
+      #progressBar {
+        width: 300px;
+        height: 20px;
+        background: #333;
+        border: 1px solid #00ff00;
+        margin: 10px auto;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      #progressFill {
+        height: 100%;
+        background: #00ff00;
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .spinner-icon {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #333;
+        border-top: 4px solid #00ff00;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Mobile Touch Controls */
+      #mobileControls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 200px;
+        display: none;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      #mobileControls.visible {
+        display: block;
+        pointer-events: auto;
+      }
+
+      .control-area {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .dpad {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        width: 130px;
+        height: 130px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 3px;
+      }
+
+      .look-pad {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 130px;
+        height: 130px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        gap: 3px;
+      }
+
+      .control-btn {
+        background: rgba(0, 255, 0, 0.2);
+        border: 2px solid rgba(0, 255, 0, 0.5);
+        border-radius: 8px;
+        color: #0f0;
+        font-size: 20px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        touch-action: none;
+        cursor: pointer;
+      }
+
+      .control-btn:active {
+        background: rgba(0, 255, 0, 0.4);
+        border-color: #0f0;
+      }
+
+      .control-btn.center {
+        grid-column: 2;
+        grid-row: 2;
+        pointer-events: auto;
+        opacity: 0.9;
+      }
+
+      @media (min-width: 768px) {
+        #mobileControls {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Cub3D</h1>
+
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <div id="spinner">
+      <div class="spinner-icon"></div>
+      <div id="loadingText">Loading WebAssembly...</div>
+      <div id="progressBar">
+        <div id="progressFill"></div>
+      </div>
+      <div id="loadingSize" style="font-size: 0.9em; color: #888; margin-top: 10px;">Downloading ~24MB...</div>
+    </div>
+    <div id="output"></div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobileControls">
+      <!-- Movement D-Pad -->
+      <div class="dpad">
+        <div></div>
+        <div class="control-btn" data-key="w">↑</div>
+        <div></div>
+        <div class="control-btn" data-key="a">←</div>
+        <div class="control-btn center" data-key="e">•</div>
+        <div class="control-btn" data-key="d">→</div>
+        <div></div>
+        <div class="control-btn" data-key="s">↓</div>
+        <div></div>
+      </div>
+      
+      <!-- Look Controls -->
+      <div class="look-pad">
+        <div class="control-btn" data-key="ArrowLeft">⟲</div>
+        <div class="control-btn" data-key="ArrowRight">⟳</div>
+      </div>
+    </div>
+
+    <script>
+      var Module = {
+        canvas: document.getElementById('canvas'),
+        locateFile: function (path, prefix) {
+          // Ensure files are loaded from the same directory as the HTML
+          return '/cub3d/' + path;
+        },
+        setStatus: function (text) {
+          if (!text) return;
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var loadingText = document.getElementById('loadingText');
+          var progressFill = document.getElementById('progressFill');
+          if (m) {
+            var progress = parseInt(m[2]) / parseInt(m[4]) * 100;
+            if (progressFill) progressFill.style.width = progress + '%';
+            if (loadingText) loadingText.textContent = m[1].trim() + '... ' + Math.round(progress) + '%';
+          } else if (loadingText) {
+            loadingText.textContent = text;
+          }
+        },
+        onRuntimeInitialized: function () {
+          document.getElementById('spinner').style.display = 'none';
+          // Show mobile controls on touch devices
+          if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.getElementById('mobileControls').classList.add('visible');
+          }
+        },
+        print: function (text) {
+          console.log(text);
+        },
+        printErr: function (text) {
+          console.error(text);
+        },
+      };
+
+      // Mobile touch control handler
+      function simulateKey(key, isDown) {
+        var keyCode;
+        var code;
+        
+        // Map keys to proper keyCodes
+        var keyMap = {
+          'w': { keyCode: 87, code: 'KeyW' },
+          'a': { keyCode: 65, code: 'KeyA' },
+          's': { keyCode: 83, code: 'KeyS' },
+          'd': { keyCode: 68, code: 'KeyD' },
+          'e': { keyCode: 69, code: 'KeyE' },
+          'ArrowLeft': { keyCode: 37, code: 'ArrowLeft' },
+          'ArrowRight': { keyCode: 39, code: 'ArrowRight' },
+          'ArrowUp': { keyCode: 38, code: 'ArrowUp' },
+          'ArrowDown': { keyCode: 40, code: 'ArrowDown' }
+        };
+        
+        var mappedKey = keyMap[key] || { keyCode: key.charCodeAt(0), code: key };
+        
+        var event = new KeyboardEvent(isDown ? 'keydown' : 'keyup', {
+          key: key,
+          code: mappedKey.code,
+          keyCode: mappedKey.keyCode,
+          which: mappedKey.keyCode,
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        
+        // Dispatch to both canvas and document
+        var canvas = document.getElementById('canvas');
+        if (canvas) canvas.dispatchEvent(event);
+        document.dispatchEvent(event);
+        window.dispatchEvent(event);
+      }
+
+      // Add touch event listeners for mobile controls
+      document.addEventListener('DOMContentLoaded', function() {
+        var activeKeys = new Map(); // store interval IDs
+
+        // Show mobile controls early on touch devices (before WASM runtime initializes)
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          var mc = document.getElementById('mobileControls');
+          if (mc) mc.classList.add('visible');
+        }
+
+        // Helper to start repeating key down events
+        function startKeyRepeat(key) {
+          if (!activeKeys.has(key)) {
+            simulateKey(key, true);
+            var intervalId = setInterval(function() { simulateKey(key, true); }, 50);
+            activeKeys.set(key, intervalId);
+          }
+        }
+
+        // Helper to stop repeating key events
+        function stopKeyRepeat(key) {
+          if (activeKeys.has(key)) {
+            clearInterval(activeKeys.get(key));
+            activeKeys.delete(key);
+            simulateKey(key, false);
+          }
+        }
+
+        document.querySelectorAll('.control-btn[data-key]').forEach(function(btn) {
+          var key = btn.getAttribute('data-key');
+
+          // Touch events
+          btn.addEventListener('touchstart', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('touchend',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('touchcancel',function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+
+          // Pointer events (covers mouse, stylus, touch on modern browsers)
+          btn.addEventListener('pointerdown', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('pointerup',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('pointercancel', function(e) { e.preventDefault(); stopKeyRepeat(key); });
+
+          // Fallback mouse events
+          btn.addEventListener('mousedown', function(e) { e.preventDefault(); startKeyRepeat(key); });
+          btn.addEventListener('mouseup',   function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+          btn.addEventListener('mouseleave',function(e) { e.preventDefault(); stopKeyRepeat(key);  });
+        });
+      });
+    </script>
+    <script src="cub3d.js"></script>
+  </body>
+</html>

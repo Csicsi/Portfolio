@@ -1,0 +1,22 @@
+# Node.js API server image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# Copy application files
+COPY server.js ./
+COPY public ./public
+
+# Create non-root user (use different UID to avoid conflict)
+RUN adduser -D -u 1001 nodeuser && \
+    chown -R nodeuser:nodeuser /app
+
+USER nodeuser
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
