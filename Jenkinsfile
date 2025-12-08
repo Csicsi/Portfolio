@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DEPLOY_HOST = 'homelab-main'
+        DEPLOY_HOST = '192.168.8.10'
         DEPLOY_USER = 'dcsicsak'
         EPLOY_PATH = '/home/dcsicsak/portfolio'
         
