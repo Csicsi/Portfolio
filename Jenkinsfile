@@ -4,7 +4,7 @@ pipeline {
     environment {
         DEPLOY_HOST = '192.168.8.10'
         DEPLOY_USER = 'dcsicsak'
-        EPLOY_PATH = '/home/dcsicsak/portfolio'
+        DEPLOY_PATH = '/home/dcsicsak/portfolio'
         
         SSH_CREDENTIAL_ID = 'main-node-deploy'
     }
