@@ -38,11 +38,11 @@ fi
 
 # Stop existing containers
 echo "Stopping existing containers..."
-docker-compose down
+docker compose down
 
 # Rebuild and start containers
 echo "Building and starting containers..."
-docker-compose up -d --build
+docker compose up -d --build
 
 echo "Deployment completed successfully!"
 ENDSSH
