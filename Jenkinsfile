@@ -4,7 +4,6 @@ pipeline {
     environment {
         DEPLOY_HOST = '192.168.8.10'
         DEPLOY_USER = 'dcsicsak'
-        DEPLOY_PATH = '/home/dcsicsak/portfolio'
         SSH_CREDENTIAL_ID = 'main-node-deploy'
     }
     
@@ -21,31 +20,28 @@ pipeline {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "echo 'SSH connection successful'"
                         
-                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} bash << 'ENDSSH'
-                        
-# Create directory if needed
-mkdir -p ${DEPLOY_PATH}
-cd ${DEPLOY_PATH}
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} 'bash -s' << 'EOF'
+cd /home/dcsicsak
 
-# Clone or pull
-if [ -d .git ]; then
+if [ -d portfolio/.git ]; then
     echo "Repository exists, pulling latest changes..."
+    cd portfolio
     git pull origin main
 else
     echo "Cloning repository..."
-    git clone https://github.com/Csicsi/Portfolio.git .
+    rm -rf portfolio
+    git clone https://github.com/Csicsi/Portfolio.git portfolio
+    cd portfolio
 fi
 
-# Stop existing containers
 echo "Stopping existing containers..."
-docker compose down
+docker compose down 2>/dev/null || true
 
-# Rebuild and start containers
 echo "Building and starting containers..."
 docker compose up -d --build
 
 echo "Deployment completed successfully!"
-ENDSSH
+EOF
                     '''
                 }
             }
